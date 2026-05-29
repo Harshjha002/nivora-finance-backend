@@ -8,6 +8,8 @@ import com.nivora.nivora_finance_backend.auth.dto.response.UserProfileResponse;
 import com.nivora.nivora_finance_backend.auth.entity.User;
 import com.nivora.nivora_finance_backend.auth.repository.UserRepository;
 import com.nivora.nivora_finance_backend.auth.service.AuthService;
+import com.nivora.nivora_finance_backend.common.exception.InvalidCredentialsException;
+import com.nivora.nivora_finance_backend.common.exception.ResourceNotFoundException;
 import com.nivora.nivora_finance_backend.common.exception.UserAlreadyExistsException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +51,8 @@ public class AuthServiceImpl implements AuthService {
 
         repo.save(newUser);
 
+        generateOtp();
+
     }
 
     @Override
@@ -56,11 +60,43 @@ public class AuthServiceImpl implements AuthService {
         return null;
     }
 
-    @Override
-    public AuthResponse login(LoginRequest req) {
-        return null;
+   @Override
+public AuthResponse login(LoginRequest req) {
+
+    User user = repo.findByEmail(req.getEmail())
+            .orElseThrow(() ->
+                    new ResourceNotFoundException(
+                            "User not found"
+                    ));
+
+    boolean passwordMatches =
+            passwordEncoder.matches(
+                    req.getPassword(),
+                    user.getPassword()
+            );
+
+    if (!passwordMatches) {
+
+        log.warn(
+                "Invalid login attempt for email: {}",
+                req.getEmail()
+        );
+
+        throw new InvalidCredentialsException(
+                "Invalid credentials"
+        );
     }
 
+    log.info(
+            "Login successful for email: {}",
+            req.getEmail()
+    );
+
+    return AuthResponse.builder()
+            .message("Login successful")
+            .token(null)
+            .build();
+}
     @Override
     public void logout() {
 
@@ -72,6 +108,6 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private String generateOtp() {
-        return "";
+        return "otp generated";
     }
 }

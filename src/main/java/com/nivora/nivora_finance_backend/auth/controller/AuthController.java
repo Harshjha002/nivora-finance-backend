@@ -17,33 +17,42 @@ public class AuthController {
 
     private  final AuthService authService;
 
-    //signup
-    @PostMapping("/signup")
-    public  ResponseEntity<String> signup(@RequestBody SignupRequest req){
+    // signup
+@PostMapping("/signup")
+public ResponseEntity<AuthResponse> signup(
+        @RequestBody SignupRequest req) {
 
-        authService.signup(req);
+    authService.signup(req);
 
-        return ResponseEntity.ok("Signup successful");
-    }
+    return ResponseEntity.ok(
+            AuthResponse.builder()
+                    .message("Signup successful")
+                    .token(null)
+                    .build()
+    );
+}
 
 
-    //verify-otp
-    @PostMapping("/verify-otp")
-    public ResponseEntity<AuthResponse> verifyOtp(@RequestBody  OtpVerifyRequest req){
+// verify otp
+@PostMapping("/verify-otp")
+public ResponseEntity<AuthResponse> verifyOtp(
+        @RequestBody OtpVerifyRequest req) {
 
-        AuthResponse res = authService.verifyOtp(req);
-        return ResponseEntity.ok(res);
+    AuthResponse res = authService.verifyOtp(req);
 
-    }
+    return ResponseEntity.ok(res);
+}
 
-    //login
-    @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest req){
 
-        AuthResponse res = authService.login(req);
-        return ResponseEntity.ok(res);
-    }
+// login
+@PostMapping("/login")
+public ResponseEntity<AuthResponse> login(
+        @RequestBody LoginRequest req) {
 
+    AuthResponse res = authService.login(req);
+
+    return ResponseEntity.ok(res);
+}
     //logout
     @PostMapping("/logout")
     public  ResponseEntity<String> logout(){

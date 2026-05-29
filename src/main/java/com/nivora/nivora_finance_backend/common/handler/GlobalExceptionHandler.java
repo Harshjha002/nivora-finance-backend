@@ -1,5 +1,6 @@
 package com.nivora.nivora_finance_backend.common.handler;
 
+import com.nivora.nivora_finance_backend.common.exception.InvalidCredentialsException;
 import com.nivora.nivora_finance_backend.common.exception.InvalidOtpException;
 import com.nivora.nivora_finance_backend.common.exception.ResourceNotFoundException;
 import com.nivora.nivora_finance_backend.common.exception.UnauthorizedException;
@@ -82,4 +83,18 @@ public class GlobalExceptionHandler {
                                 .build()
                 );
     }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+public ResponseEntity<ApiResponse<Object>> handleInvalidCredentials(
+        InvalidCredentialsException ex) {
+
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(
+                    ApiResponse.builder()
+                            .success(false)
+                            .message(ex.getMessage())
+                            .data(null)
+                            .build()
+            );
+}
 }

@@ -1,7 +1,5 @@
 package com.nivora.nivora_finance_backend.redis.config;
 
-
-import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
