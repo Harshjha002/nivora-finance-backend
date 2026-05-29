@@ -5,15 +5,49 @@ import com.nivora.nivora_finance_backend.auth.dto.request.OtpVerifyRequest;
 import com.nivora.nivora_finance_backend.auth.dto.request.SignupRequest;
 import com.nivora.nivora_finance_backend.auth.dto.response.AuthResponse;
 import com.nivora.nivora_finance_backend.auth.dto.response.UserProfileResponse;
+import com.nivora.nivora_finance_backend.auth.entity.User;
+import com.nivora.nivora_finance_backend.auth.repository.UserRepository;
 import com.nivora.nivora_finance_backend.auth.service.AuthService;
+import com.nivora.nivora_finance_backend.common.exception.UserAlreadyExistsException;
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 
 @Service
+@AllArgsConstructor
+@Slf4j
 public class AuthServiceImpl implements AuthService {
+
+    private final UserRepository repo;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public void signup(SignupRequest req) {
+
+        String reqEmail = req.getEmail();
+        String reqName = req.getName();
+        String reqPassword = req.getPassword();
+
+        boolean emailExists = repo.existsByEmail(reqEmail);
+        if(emailExists){
+            throw new UserAlreadyExistsException(
+                    "Email already exists"
+            );
+        }
+
+        String encodedPassword =
+                passwordEncoder.encode(reqPassword);
+
+        User newUser = User.builder()
+                .name(reqName)
+                .password(encodedPassword)
+                .email(reqEmail)
+                .verified(false)
+                .build();
+
+        repo.save(newUser);
 
     }
 

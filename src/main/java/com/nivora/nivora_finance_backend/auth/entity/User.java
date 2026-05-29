@@ -23,12 +23,14 @@ public class User {
 
     private String name;
 
-    @Column(unique = true)
+    @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(nullable = false)
     private String password;
 
-    private Boolean verified;
+    @Column(nullable = false)
+    private Boolean verified = false;
 
     @CreationTimestamp
     private LocalDateTime createdAt;
