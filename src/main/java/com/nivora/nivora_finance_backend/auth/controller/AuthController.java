@@ -15,56 +15,54 @@ import org.springframework.web.bind.annotation.*;
 @AllArgsConstructor
 public class AuthController {
 
-    private  final AuthService authService;
+    private final AuthService authService;
 
     // signup
-@PostMapping("/signup")
-public ResponseEntity<AuthResponse> signup(
-        @RequestBody SignupRequest req) {
+    @PostMapping("/signup")
+    public ResponseEntity<AuthResponse> signup(
+            @RequestBody SignupRequest req) {
 
-    authService.signup(req);
+        authService.signup(req);
 
-    return ResponseEntity.ok(
-            AuthResponse.builder()
-                    .message("Signup successful")
-                    .token(null)
-                    .build()
-    );
-}
+        return ResponseEntity.ok(
+                AuthResponse.builder()
+                        .message("Signup successful")
+                        .token(null)
+                        .build());
+    }
 
+    // verify otp
+    @PostMapping("/verify-otp")
+    public ResponseEntity<AuthResponse> verifyOtp(
+            @RequestBody OtpVerifyRequest req) {
 
-// verify otp
-@PostMapping("/verify-otp")
-public ResponseEntity<AuthResponse> verifyOtp(
-        @RequestBody OtpVerifyRequest req) {
+        AuthResponse res = authService.verifyOtp(req);
 
-    AuthResponse res = authService.verifyOtp(req);
+        return ResponseEntity.ok(res);
+    }
 
-    return ResponseEntity.ok(res);
-}
+    // login
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(
+            @RequestBody LoginRequest req) {
 
+        AuthResponse res = authService.login(req);
 
-// login
-@PostMapping("/login")
-public ResponseEntity<AuthResponse> login(
-        @RequestBody LoginRequest req) {
+        return ResponseEntity.ok(res);
+    }
 
-    AuthResponse res = authService.login(req);
-
-    return ResponseEntity.ok(res);
-}
-    //logout
+    // logout
     @PostMapping("/logout")
-    public  ResponseEntity<String> logout(){
+    public ResponseEntity<String> logout() {
 
         authService.logout();
 
         return ResponseEntity.ok("Logout successful");
     }
 
-    //me --> current user
+    // me --> current user
     @GetMapping("/me")
-    public ResponseEntity<UserProfileResponse> getCurrentUser(){
+    public ResponseEntity<UserProfileResponse> getCurrentUser() {
 
         UserProfileResponse res = authService.getCurrentUser();
 

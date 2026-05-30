@@ -12,6 +12,8 @@ import com.nivora.nivora_finance_backend.common.exception.InvalidCredentialsExce
 import com.nivora.nivora_finance_backend.common.exception.InvalidOtpException;
 import com.nivora.nivora_finance_backend.common.exception.ResourceNotFoundException;
 import com.nivora.nivora_finance_backend.common.exception.UserAlreadyExistsException;
+import com.nivora.nivora_finance_backend.security.JwtService;
+
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -30,6 +32,7 @@ public class AuthServiceImpl implements AuthService {
         private final UserRepository repo;
         private final PasswordEncoder passwordEncoder;
         private final RedisTemplate<String, String> redisTemplate;
+        private final JwtService jwtService;
 
         @Override
         public void signup(SignupRequest req) {
@@ -124,13 +127,21 @@ public class AuthServiceImpl implements AuthService {
                                         "Invalid credentials");
                 }
 
+                String token = jwtService.generateToken(
+                                user.getEmail());
+
+                redisTemplate.opsForValue().set(
+                                "jwt:" + user.getEmail(),
+                                token,
+                                Duration.ofHours(3));
+
                 log.info(
                                 "Login successful for email: {}",
                                 req.getEmail());
 
                 return AuthResponse.builder()
                                 .message("Login successful")
-                                .token(null)
+                                .token(token)
                                 .build();
         }
 
