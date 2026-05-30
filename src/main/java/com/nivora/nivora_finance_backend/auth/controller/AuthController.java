@@ -68,4 +68,9 @@ public class AuthController {
 
         return ResponseEntity.ok(res);
     }
+
+    @GetMapping("/test")
+    public String test() {
+        return "JWT Filter Working";
+    }
 }
