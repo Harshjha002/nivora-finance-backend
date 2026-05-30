@@ -11,9 +11,10 @@ import com.nivora.nivora_finance_backend.auth.service.AuthService;
 import com.nivora.nivora_finance_backend.common.exception.InvalidCredentialsException;
 import com.nivora.nivora_finance_backend.common.exception.InvalidOtpException;
 import com.nivora.nivora_finance_backend.common.exception.ResourceNotFoundException;
+import com.nivora.nivora_finance_backend.common.exception.UnauthorizedException;
 import com.nivora.nivora_finance_backend.common.exception.UserAlreadyExistsException;
 import com.nivora.nivora_finance_backend.security.JwtService;
-
+import org.springframework.security.core.Authentication;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -21,6 +22,7 @@ import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -110,8 +112,12 @@ public class AuthServiceImpl implements AuthService {
         public AuthResponse login(LoginRequest req) {
 
                 User user = repo.findByEmail(req.getEmail())
-                                .orElseThrow(() -> new ResourceNotFoundException(
-                                                "User not found"));
+                                .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
+
+                if (!user.getVerified()) {
+                        throw new UnauthorizedException(
+                                        "Please verify your account first");
+                }
 
                 boolean passwordMatches = passwordEncoder.matches(
                                 req.getPassword(),
@@ -148,11 +154,41 @@ public class AuthServiceImpl implements AuthService {
         @Override
         public void logout() {
 
+                Authentication authentication = SecurityContextHolder
+                                .getContext()
+                                .getAuthentication();
+
+                if (authentication == null ||
+                                !(authentication.getPrincipal() instanceof User user)) {
+
+                        throw new UnauthorizedException(
+                                        "User not authenticated");
+                }
+
+                redisTemplate.delete(
+                                "jwt:" + user.getEmail());
+
+                SecurityContextHolder.clearContext();
+
+                log.info(
+                                "User logged out: {}",
+                                user.getEmail());
         }
 
         @Override
         public UserProfileResponse getCurrentUser() {
-                return null;
+
+                Authentication authentication = SecurityContextHolder
+                                .getContext()
+                                .getAuthentication();
+
+                User user = (User) authentication.getPrincipal();
+
+                return UserProfileResponse.builder()
+                                .id(user.getId())
+                                .name(user.getName())
+                                .email(user.getEmail())
+                                .build();
         }
 
         private String generateOtp() {

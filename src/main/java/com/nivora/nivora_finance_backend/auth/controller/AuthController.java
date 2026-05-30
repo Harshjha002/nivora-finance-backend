@@ -8,6 +8,7 @@ import com.nivora.nivora_finance_backend.auth.dto.response.UserProfileResponse;
 import com.nivora.nivora_finance_backend.auth.service.AuthService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
+
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -57,20 +58,16 @@ public class AuthController {
 
         authService.logout();
 
-        return ResponseEntity.ok("Logout successful");
+        return ResponseEntity.ok(
+                "Logout successful");
     }
 
-    // me --> current user
+
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getCurrentUser() {
 
         UserProfileResponse res = authService.getCurrentUser();
 
         return ResponseEntity.ok(res);
-    }
-
-    @GetMapping("/test")
-    public String test() {
-        return "JWT Filter Working";
     }
 }
