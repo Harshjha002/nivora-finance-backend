@@ -14,10 +14,14 @@ import com.nivora.nivora_finance_backend.common.exception.ResourceNotFoundExcept
 import com.nivora.nivora_finance_backend.common.exception.UnauthorizedException;
 import com.nivora.nivora_finance_backend.common.exception.UserAlreadyExistsException;
 import com.nivora.nivora_finance_backend.security.JwtService;
+import com.nivora.nivora_finance_backend.wallet.entity.Wallet;
+import com.nivora.nivora_finance_backend.wallet.repository.WalletRepository;
+
 import org.springframework.security.core.Authentication;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -35,6 +39,7 @@ public class AuthServiceImpl implements AuthService {
         private final PasswordEncoder passwordEncoder;
         private final RedisTemplate<String, String> redisTemplate;
         private final JwtService jwtService;
+        private final WalletRepository walletRepository;
 
         @Override
         public void signup(SignupRequest req) {
@@ -94,6 +99,13 @@ public class AuthServiceImpl implements AuthService {
 
                 repo.save(user);
 
+                Wallet wallet = Wallet.builder()
+                                .user(user)
+                                .balance(BigDecimal.ZERO)
+                                .build();
+
+                walletRepository.save(wallet);
+
                 redisTemplate.delete(
                                 "otp:" + req.getEmail());
 
@@ -101,9 +113,17 @@ public class AuthServiceImpl implements AuthService {
                                 "User verified successfully: {}",
                                 req.getEmail());
 
+                String token = jwtService.generateToken(
+                                user.getEmail());
+
+                redisTemplate.opsForValue().set(
+                                "jwt:" + user.getEmail(),
+                                token,
+                                Duration.ofHours(3));
+
                 return AuthResponse.builder()
                                 .message("OTP verified successfully")
-                                .token(null)
+                                .token(token)
                                 .build();
 
         }

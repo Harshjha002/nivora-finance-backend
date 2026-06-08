@@ -17,6 +17,8 @@ import com.nivora.nivora_finance_backend.common.exception.UserAlreadyExistsExcep
 import com.nivora.nivora_finance_backend.auth.repository.UserRepository;
 import com.nivora.nivora_finance_backend.auth.service.impl.AuthServiceImpl;
 import com.nivora.nivora_finance_backend.security.JwtService;
+import com.nivora.nivora_finance_backend.wallet.entity.Wallet;
+import com.nivora.nivora_finance_backend.wallet.repository.WalletRepository;
 
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -33,300 +35,294 @@ import com.nivora.nivora_finance_backend.common.exception.InvalidCredentialsExce
 import com.nivora.nivora_finance_backend.common.exception.InvalidOtpException;
 import com.nivora.nivora_finance_backend.common.exception.UnauthorizedException;
 
-
-
 @ExtendWith(MockitoExtension.class)
 class AuthServiceImplTest {
 
-    @Mock
-    private ValueOperations<String, String> valueOperations;
+        @Mock
+        private ValueOperations<String, String> valueOperations;
 
-    @Mock
-    private UserRepository repo;
+        @Mock
+        private UserRepository repo;
 
-    @Mock
-    private PasswordEncoder passwordEncoder;
+        @Mock
+        private PasswordEncoder passwordEncoder;
 
-    @Mock
-    private RedisTemplate<String, String> redisTemplate;
+        @Mock
+        private RedisTemplate<String, String> redisTemplate;
 
-    @Mock
-    private JwtService jwtService;
+        @Mock
+        private JwtService jwtService;
 
-    @InjectMocks
-    private AuthServiceImpl authService;
+        @InjectMocks
+        private AuthServiceImpl authService;
 
-    @Test
-    void signup_ShouldCreateUser_WhenEmailDoesNotExist() {
+        @Mock
+        private WalletRepository walletRepository;
 
-        SignupRequest req = SignupRequest.builder()
-                .name("Test User")
-                .email("test@example.com")
-                .password("testPassword123")
-                .build();
+        @Test
+        void signup_ShouldCreateUser_WhenEmailDoesNotExist() {
 
-        when(repo.existsByEmail(req.getEmail()))
-                .thenReturn(false);
+                SignupRequest req = SignupRequest.builder()
+                                .name("Test User")
+                                .email("test@example.com")
+                                .password("testPassword123")
+                                .build();
 
-        when(passwordEncoder.encode(req.getPassword()))
-                .thenReturn("encodedPassword");
+                when(repo.existsByEmail(req.getEmail()))
+                                .thenReturn(false);
 
-        when(redisTemplate.opsForValue())
-                .thenReturn(valueOperations);
+                when(passwordEncoder.encode(req.getPassword()))
+                                .thenReturn("encodedPassword");
 
-        authService.signup(req);
+                when(redisTemplate.opsForValue())
+                                .thenReturn(valueOperations);
 
-        verify(repo, times(1))
-                .save(any(User.class));
-    }
+                authService.signup(req);
 
-    
-    @Test
-    void signup_ShouldThrowException_WhenEmailExists() {
+                verify(repo, times(1))
+                                .save(any(User.class));
+        }
 
-        SignupRequest req = SignupRequest.builder()
-                .name("Test User")
-                .email("test@example.com")
-                .password("testPassword123")
-                .build();
+        @Test
+        void signup_ShouldThrowException_WhenEmailExists() {
 
-        when(repo.existsByEmail(req.getEmail()))
-                .thenReturn(true);
+                SignupRequest req = SignupRequest.builder()
+                                .name("Test User")
+                                .email("test@example.com")
+                                .password("testPassword123")
+                                .build();
 
-        assertThrows(
-                UserAlreadyExistsException.class,
-                () -> authService.signup(req));
+                when(repo.existsByEmail(req.getEmail()))
+                                .thenReturn(true);
 
-        verify(repo, never())
-                .save(any(User.class));
-    }
+                assertThrows(
+                                UserAlreadyExistsException.class,
+                                () -> authService.signup(req));
 
-    @Test
-void login_ShouldReturnToken_WhenCredentialsAreValid() {
+                verify(repo, never())
+                                .save(any(User.class));
+        }
 
-    LoginRequest req = LoginRequest.builder()
-            .email("test@example.com")
-            .password("password123")
-            .build();
-
-    User user = User.builder()
-            .email("test@example.com")
-            .password("encodedPassword")
-            .verified(true)
-            .build();
-
-    when(repo.findByEmail(req.getEmail()))
-            .thenReturn(Optional.of(user));
-
-    when(passwordEncoder.matches(
-            req.getPassword(),
-            user.getPassword()))
-            .thenReturn(true);
-
-    when(jwtService.generateToken(user.getEmail()))
-            .thenReturn("jwt-token");
-
-    when(redisTemplate.opsForValue())
-            .thenReturn(valueOperations);
-
-    AuthResponse response =
-            authService.login(req);
-
-    assertEquals(
-            "Login successful",
-            response.getMessage());
-
-    assertEquals(
-            "jwt-token",
-            response.getToken());
-}
-
-@Test
-void login_ShouldThrowException_WhenPasswordIsWrong() {
-
-    LoginRequest req = LoginRequest.builder()
-            .email("test@example.com")
-            .password("wrongPassword")
-            .build();
-
-    User user = User.builder()
-            .email("test@example.com")
-            .password("encodedPassword")
-            .verified(true)
-            .build();
-
-    when(repo.findByEmail(req.getEmail()))
-            .thenReturn(Optional.of(user));
-
-    when(passwordEncoder.matches(
-            req.getPassword(),
-            user.getPassword()))
-            .thenReturn(false);
-
-    assertThrows(
-            InvalidCredentialsException.class,
-            () -> authService.login(req)
-    );
-}
-
-@Test
-void login_ShouldThrowException_WhenUserNotFound() {
-
-    LoginRequest req = LoginRequest.builder()
-            .email("test@example.com")
-            .password("password123")
-            .build();
-
-    when(repo.findByEmail(req.getEmail()))
-            .thenReturn(Optional.empty());
-
-    assertThrows(
-            InvalidCredentialsException.class,
-            () -> authService.login(req)
-    );
-}
-
-@Test
-void login_ShouldThrowException_WhenUserIsNotVerified() {
-
-    LoginRequest req = LoginRequest.builder()
-            .email("test@example.com")
-            .password("password123")
-            .build();
-
-    User user = User.builder()
-            .email("test@example.com")
-            .password("encodedPassword")
-            .verified(false)
-            .build();
-
-    when(repo.findByEmail(req.getEmail()))
-            .thenReturn(Optional.of(user));
-
-    assertThrows(
-            UnauthorizedException.class,
-            () -> authService.login(req)
-    );
-}
-@Test
-void verifyOtp_ShouldVerifyUser_WhenOtpIsValid() {
-
-    OtpVerifyRequest req = OtpVerifyRequest.builder()
-            .email("test@example.com")
-            .otp("123456")
-            .build();
-
-    User user = User.builder()
-            .email("test@example.com")
-            .verified(false)
-            .build();
-
-    when(redisTemplate.opsForValue())
-            .thenReturn(valueOperations);
-
-    when(valueOperations.get("otp:test@example.com"))
-            .thenReturn("123456");
-
-    when(repo.findByEmail(req.getEmail()))
-            .thenReturn(Optional.of(user));
-
-    AuthResponse response =
-            authService.verifyOtp(req);
-
-    assertEquals(
-            "OTP verified successfully",
-            response.getMessage());
-
-    verify(repo).save(user);
-    verify(redisTemplate)
-            .delete("otp:test@example.com");
-}
-
-@Test
-void verifyOtp_ShouldThrowException_WhenOtpIsInvalid() {
-
-    OtpVerifyRequest req = OtpVerifyRequest.builder()
-            .email("test@example.com")
-            .otp("999999")
-            .build();
-
-    when(redisTemplate.opsForValue())
-            .thenReturn(valueOperations);
-
-    when(valueOperations.get("otp:test@example.com"))
-            .thenReturn("123456");
-
-    assertThrows(
-            InvalidOtpException.class,
-            () -> authService.verifyOtp(req)
-    );
-}
-
-@Test
-void verifyOtp_ShouldThrowException_WhenOtpExpired() {
-
-    OtpVerifyRequest req = OtpVerifyRequest.builder()
-            .email("test@example.com")
-            .otp("123456")
-            .build();
-
-    when(redisTemplate.opsForValue())
-            .thenReturn(valueOperations);
-
-    when(valueOperations.get("otp:test@example.com"))
-            .thenReturn(null);
-
-    assertThrows(
-            InvalidOtpException.class,
-            () -> authService.verifyOtp(req)
-    );
-}
-
-@Test
-void logout_ShouldDeleteJwtFromRedis() {
-
-    User user = User.builder()
-            .email("test@example.com")
-            .build();
-
-    Authentication authentication =
-            mock(Authentication.class);
-
-    when(authentication.getPrincipal())
-            .thenReturn(user);
-
-    SecurityContextHolder.getContext()
-            .setAuthentication(authentication);
-
-    authService.logout();
-
-    verify(redisTemplate)
-            .delete("jwt:test@example.com");
-}
-@Test
-void getCurrentUser_ShouldReturnProfile() {
-
-    User user = User.builder()
-            .id(1L)
-            .name("Test User")
-            .email("test@example.com")
-            .build();
-
-    Authentication authentication =
-            mock(Authentication.class);
-
-    when(authentication.getPrincipal())
-            .thenReturn(user);
-
-    SecurityContextHolder.getContext()
-            .setAuthentication(authentication);
-
-    UserProfileResponse response =
-            authService.getCurrentUser();
-
-    assertEquals(1L, response.getId());
-    assertEquals("Test User", response.getName());
-    assertEquals("test@example.com", response.getEmail());
-}
-    
+        @Test
+        void login_ShouldReturnToken_WhenCredentialsAreValid() {
+
+                LoginRequest req = LoginRequest.builder()
+                                .email("test@example.com")
+                                .password("password123")
+                                .build();
+
+                User user = User.builder()
+                                .email("test@example.com")
+                                .password("encodedPassword")
+                                .verified(true)
+                                .build();
+
+                when(repo.findByEmail(req.getEmail()))
+                                .thenReturn(Optional.of(user));
+
+                when(passwordEncoder.matches(
+                                req.getPassword(),
+                                user.getPassword()))
+                                .thenReturn(true);
+
+                when(jwtService.generateToken(user.getEmail()))
+                                .thenReturn("jwt-token");
+
+                when(redisTemplate.opsForValue())
+                                .thenReturn(valueOperations);
+
+                AuthResponse response = authService.login(req);
+
+                assertEquals(
+                                "Login successful",
+                                response.getMessage());
+
+                assertEquals(
+                                "jwt-token",
+                                response.getToken());
+        }
+
+        @Test
+        void login_ShouldThrowException_WhenPasswordIsWrong() {
+
+                LoginRequest req = LoginRequest.builder()
+                                .email("test@example.com")
+                                .password("wrongPassword")
+                                .build();
+
+                User user = User.builder()
+                                .email("test@example.com")
+                                .password("encodedPassword")
+                                .verified(true)
+                                .build();
+
+                when(repo.findByEmail(req.getEmail()))
+                                .thenReturn(Optional.of(user));
+
+                when(passwordEncoder.matches(
+                                req.getPassword(),
+                                user.getPassword()))
+                                .thenReturn(false);
+
+                assertThrows(
+                                InvalidCredentialsException.class,
+                                () -> authService.login(req));
+        }
+
+        @Test
+        void login_ShouldThrowException_WhenUserNotFound() {
+
+                LoginRequest req = LoginRequest.builder()
+                                .email("test@example.com")
+                                .password("password123")
+                                .build();
+
+                when(repo.findByEmail(req.getEmail()))
+                                .thenReturn(Optional.empty());
+
+                assertThrows(
+                                InvalidCredentialsException.class,
+                                () -> authService.login(req));
+        }
+
+        @Test
+        void login_ShouldThrowException_WhenUserIsNotVerified() {
+
+                LoginRequest req = LoginRequest.builder()
+                                .email("test@example.com")
+                                .password("password123")
+                                .build();
+
+                User user = User.builder()
+                                .email("test@example.com")
+                                .password("encodedPassword")
+                                .verified(false)
+                                .build();
+
+                when(repo.findByEmail(req.getEmail()))
+                                .thenReturn(Optional.of(user));
+
+                assertThrows(
+                                UnauthorizedException.class,
+                                () -> authService.login(req));
+        }
+
+        @Test
+        void verifyOtp_ShouldVerifyUser_WhenOtpIsValid() {
+
+                OtpVerifyRequest req = OtpVerifyRequest.builder()
+                                .email("test@example.com")
+                                .otp("123456")
+                                .build();
+
+                User user = User.builder()
+                                .email("test@example.com")
+                                .verified(false)
+                                .build();
+
+                when(redisTemplate.opsForValue())
+                                .thenReturn(valueOperations);
+
+                when(valueOperations.get("otp:test@example.com"))
+                                .thenReturn("123456");
+
+                when(repo.findByEmail(req.getEmail()))
+                                .thenReturn(Optional.of(user));
+
+                AuthResponse response = authService.verifyOtp(req);
+
+                assertEquals(
+                                "OTP verified successfully",
+                                response.getMessage());
+
+                verify(repo).save(user);
+                verify(redisTemplate)
+                                .delete("otp:test@example.com");
+                verify(walletRepository)
+                                .save(any(Wallet.class));
+        }
+
+        @Test
+        void verifyOtp_ShouldThrowException_WhenOtpIsInvalid() {
+
+                OtpVerifyRequest req = OtpVerifyRequest.builder()
+                                .email("test@example.com")
+                                .otp("999999")
+                                .build();
+
+                when(redisTemplate.opsForValue())
+                                .thenReturn(valueOperations);
+
+                when(valueOperations.get("otp:test@example.com"))
+                                .thenReturn("123456");
+
+                assertThrows(
+                                InvalidOtpException.class,
+                                () -> authService.verifyOtp(req));
+        }
+
+        @Test
+        void verifyOtp_ShouldThrowException_WhenOtpExpired() {
+
+                OtpVerifyRequest req = OtpVerifyRequest.builder()
+                                .email("test@example.com")
+                                .otp("123456")
+                                .build();
+
+                when(redisTemplate.opsForValue())
+                                .thenReturn(valueOperations);
+
+                when(valueOperations.get("otp:test@example.com"))
+                                .thenReturn(null);
+
+                assertThrows(
+                                InvalidOtpException.class,
+                                () -> authService.verifyOtp(req));
+        }
+
+        @Test
+        void logout_ShouldDeleteJwtFromRedis() {
+
+                User user = User.builder()
+                                .email("test@example.com")
+                                .build();
+
+                Authentication authentication = mock(Authentication.class);
+
+                when(authentication.getPrincipal())
+                                .thenReturn(user);
+
+                SecurityContextHolder.getContext()
+                                .setAuthentication(authentication);
+
+                authService.logout();
+
+                verify(redisTemplate)
+                                .delete("jwt:test@example.com");
+        }
+
+        @Test
+        void getCurrentUser_ShouldReturnProfile() {
+
+                User user = User.builder()
+                                .id(1L)
+                                .name("Test User")
+                                .email("test@example.com")
+                                .build();
+
+                Authentication authentication = mock(Authentication.class);
+
+                when(authentication.getPrincipal())
+                                .thenReturn(user);
+
+                SecurityContextHolder.getContext()
+                                .setAuthentication(authentication);
+
+                UserProfileResponse response = authService.getCurrentUser();
+
+                assertEquals(1L, response.getId());
+                assertEquals("Test User", response.getName());
+                assertEquals("test@example.com", response.getEmail());
+        }
+
 }

@@ -34,16 +34,11 @@ public class Wallet {
     private Long id;
 
     @OneToOne
-    @JoinColumn(
-            name = "user_id",
-            nullable = false,
-            unique = true)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-    @Column(
-            nullable = false,
-            precision = 19,
-            scale = 2)
+    @Column(nullable = false, precision = 19, scale = 2)
+    @Builder.Default
     private BigDecimal balance = BigDecimal.ZERO;
 
     @CreationTimestamp
