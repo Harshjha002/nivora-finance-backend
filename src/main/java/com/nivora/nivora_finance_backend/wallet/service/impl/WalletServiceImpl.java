@@ -7,6 +7,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.nivora.nivora_finance_backend.auth.entity.User;
+import com.nivora.nivora_finance_backend.common.exception.InsufficientFundsException;
 import com.nivora.nivora_finance_backend.common.exception.ResourceNotFoundException;
 import com.nivora.nivora_finance_backend.wallet.dto.request.AddMoneyRequest;
 import com.nivora.nivora_finance_backend.wallet.dto.request.WithdrawRequest;
@@ -26,10 +27,7 @@ public class WalletServiceImpl implements WalletService {
 
     @Override
     public BalanceResponse getBalance() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        User user = (User) authentication.getPrincipal();
-
+        User user = getCurrentUser();
         Wallet wallet = walletRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Wallet not found"));
 
@@ -40,10 +38,7 @@ public class WalletServiceImpl implements WalletService {
     @Override
     public WalletResponse addMoney(AddMoneyRequest req) {
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        User user = (User) authentication.getPrincipal();
-
+        User user = getCurrentUser();
         Wallet wallet = walletRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Wallet not found"));
@@ -65,16 +60,52 @@ public class WalletServiceImpl implements WalletService {
         walletRepository.save(wallet);
 
         return WalletResponse.builder()
-        .message("Money added successfully")
-        .balance(wallet.getBalance())
-        .build();
+                .message("Money added successfully")
+                .balance(wallet.getBalance())
+                .build();
 
     }
 
     @Override
     public WalletResponse withdrawMoney(WithdrawRequest req) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'withdrawMoney'");
+        User user = getCurrentUser();
+        Wallet wallet = walletRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Wallet not found"));
+
+        if (req.getAmount().compareTo(
+                BigDecimal.ONE) < 0) {
+
+            throw new IllegalArgumentException(
+                    "Minimum withdrawal amount is $1");
+        }
+
+        if (wallet.getBalance().compareTo(
+                req.getAmount()) < 0) {
+
+            throw new InsufficientFundsException(
+                    "Insufficient wallet balance");
+        }
+
+        wallet.setBalance(
+                wallet.getBalance()
+                        .subtract(req.getAmount()));
+
+        walletRepository.save(wallet);
+
+        return WalletResponse.builder()
+                .message("Money withdrawn successfully")
+                .balance(wallet.getBalance())
+                .build();
+
+    }
+
+    private User getCurrentUser() {
+
+        Authentication authentication = SecurityContextHolder.getContext()
+                .getAuthentication();
+
+        return (User) authentication.getPrincipal();
     }
 
 }

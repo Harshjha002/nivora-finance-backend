@@ -28,10 +28,10 @@ public class WalletController {
     }
 
     @PostMapping("/withdraw")
-    public void withdrawMoney(
+    public WalletResponse withdrawMoney(
             @RequestBody WithdrawRequest req) {
 
-        walletService.withdrawMoney(req);
+        return walletService.withdrawMoney(req);
     }
 
 }
