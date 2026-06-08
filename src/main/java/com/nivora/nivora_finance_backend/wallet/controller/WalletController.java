@@ -1,9 +1,9 @@
 package com.nivora.nivora_finance_backend.wallet.controller;
 
 import com.nivora.nivora_finance_backend.wallet.dto.request.AddMoneyRequest;
-import com.nivora.nivora_finance_backend.wallet.dto.request.TransferRequest;
 import com.nivora.nivora_finance_backend.wallet.dto.request.WithdrawRequest;
 import com.nivora.nivora_finance_backend.wallet.dto.response.BalanceResponse;
+import com.nivora.nivora_finance_backend.wallet.dto.response.WalletResponse;
 import com.nivora.nivora_finance_backend.wallet.service.WalletService;
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -21,10 +21,10 @@ public class WalletController {
     }
 
     @PostMapping("/add-money")
-    public void addMoney(
+    public WalletResponse addMoney(
             @RequestBody AddMoneyRequest req) {
 
-        walletService.addMoney(req);
+        return walletService.addMoney(req);
     }
 
     @PostMapping("/withdraw")
@@ -34,14 +34,4 @@ public class WalletController {
         walletService.withdrawMoney(req);
     }
 
-    @PostMapping("/transfer")
-    public void transferMoney(
-            @RequestBody TransferRequest req,
-            @RequestHeader("X-Idempotency-Key")
-            String idempotencyKey) {
-
-        walletService.transferMoney(
-                req,
-                idempotencyKey);
-    }
 }

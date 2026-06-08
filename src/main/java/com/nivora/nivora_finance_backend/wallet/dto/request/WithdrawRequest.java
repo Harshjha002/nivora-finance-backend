@@ -11,6 +11,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class WithdrawRequest {
-        private Long bankId;
+
     private BigDecimal amount;
 }
