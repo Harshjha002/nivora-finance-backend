@@ -1,0 +1,18 @@
+package com.nivora.nivora_finance_backend.transaction.dto.request;
+
+import java.math.BigDecimal;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+public class TransferRequest {
+
+    private Long receiverId;
+    private BigDecimal amount;
+}
