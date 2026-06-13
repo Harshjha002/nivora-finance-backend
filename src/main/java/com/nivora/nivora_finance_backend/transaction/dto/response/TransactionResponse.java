@@ -3,6 +3,7 @@ package com.nivora.nivora_finance_backend.transaction.dto.response;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import com.nivora.nivora_finance_backend.transaction.entity.TransactionDirection;
 import com.nivora.nivora_finance_backend.transaction.entity.TransactionStatus;
 import com.nivora.nivora_finance_backend.transaction.entity.TransactionType;
 
@@ -30,6 +31,8 @@ public class TransactionResponse {
     private TransactionType type;
 
     private LocalDateTime createdAt;
+
+    private TransactionDirection direction;
 
     private String message;
 }

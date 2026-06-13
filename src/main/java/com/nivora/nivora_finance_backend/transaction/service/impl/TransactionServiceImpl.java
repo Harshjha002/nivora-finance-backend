@@ -14,6 +14,7 @@ import com.nivora.nivora_finance_backend.common.exception.ResourceNotFoundExcept
 import com.nivora.nivora_finance_backend.transaction.dto.request.TransferRequest;
 import com.nivora.nivora_finance_backend.transaction.dto.response.TransactionResponse;
 import com.nivora.nivora_finance_backend.transaction.entity.Transaction;
+import com.nivora.nivora_finance_backend.transaction.entity.TransactionDirection;
 import com.nivora.nivora_finance_backend.transaction.entity.TransactionStatus;
 import com.nivora.nivora_finance_backend.transaction.entity.TransactionType;
 import com.nivora.nivora_finance_backend.transaction.repository.TransactionRepository;
@@ -103,7 +104,6 @@ public class TransactionServiceImpl implements TransactionService {
                 .transactionId(transaction.getId())
                 .senderId(transaction.getSenderId())
                 .receiverId(transaction.getReceiverId())
-                .receiverId(receiver.getId())
                 .amount(transaction.getAmount())
                 .status(transaction.getStatus())
                 .type(transaction.getType())
@@ -114,15 +114,66 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     public List<TransactionResponse> getMyTransactions() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getMyTransactions'");
+
+        User user = getCurrentUser();
+
+        List<Transaction> transactions = transactionRepository.findBySenderIdOrReceiverId(
+                user.getId(),
+                user.getId());
+
+        return transactions.stream()
+                .map(transaction -> {
+
+                    TransactionDirection direction = transaction.getSenderId().equals(user.getId())
+                            ? TransactionDirection.DEBIT
+                            : TransactionDirection.CREDIT;
+
+                    return TransactionResponse.builder()
+                            .transactionId(transaction.getId())
+                            .senderId(transaction.getSenderId())
+                            .receiverId(transaction.getReceiverId())
+                            .amount(transaction.getAmount())
+                            .status(transaction.getStatus())
+                            .type(transaction.getType())
+                            .direction(direction)
+                            .createdAt(transaction.getCreatedAt())
+                            .build();
+                })
+                .toList();
     }
 
     @Override
-    public TransactionResponse getTransactionById(Long transactionId) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getTransactionById'");
+public TransactionResponse getTransactionById(Long transactionId) {
+
+    User user = getCurrentUser();
+
+    Transaction transaction = transactionRepository.findById(transactionId)
+            .orElseThrow(() ->
+                    new ResourceNotFoundException("Transaction not found"));
+
+    if (!transaction.getSenderId().equals(user.getId())
+            && !transaction.getReceiverId().equals(user.getId())) {
+
+        throw new ResourceNotFoundException(
+                "Transaction not found");
     }
+
+    TransactionDirection direction =
+            transaction.getSenderId().equals(user.getId())
+                    ? TransactionDirection.DEBIT
+                    : TransactionDirection.CREDIT;
+
+    return TransactionResponse.builder()
+            .transactionId(transaction.getId())
+            .senderId(transaction.getSenderId())
+            .receiverId(transaction.getReceiverId())
+            .amount(transaction.getAmount())
+            .status(transaction.getStatus())
+            .type(transaction.getType())
+            .direction(direction)
+            .createdAt(transaction.getCreatedAt())
+            .build();
+}
 
     private User getCurrentUser() {
 
