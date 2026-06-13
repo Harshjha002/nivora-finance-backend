@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -106,6 +107,20 @@ public class GlobalExceptionHandler {
                                                                 .build());
         }
 
+
+        @ExceptionHandler(DataIntegrityViolationException.class)
+        public ResponseEntity<ApiResponse<Object>> handleDataIntegrityViolation(
+                        DataIntegrityViolationException ex) {
+
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                                .body(
+                                                ApiResponse.builder()
+                                                                .success(false)
+                                                                .message("Duplicate transaction request")
+                                                                .data(null)
+                                                                .build());
+        }
+
         @ExceptionHandler(Exception.class)
         public ResponseEntity<ApiResponse<Object>> handleGenericException(
                         Exception ex) {
@@ -118,5 +133,7 @@ public class GlobalExceptionHandler {
                                                                 .data(null)
                                                                 .build());
         }
+
+        
 
 }
