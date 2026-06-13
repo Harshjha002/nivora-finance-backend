@@ -1,264 +1,346 @@
-# Nivora Finance - Authentication Module
+# Nivora Finance - Transaction Module
 
 ## Purpose
 
-The Authentication Module is responsible for:
+The Transaction Module is responsible for:
 
-* User registration
-* Email verification through OTP
-* User login
-* JWT-based authentication
-* Session management using Redis
-* Route protection
-* User logout
-* Token revocation
+* Transferring money between users
+* Maintaining transaction history
+* Retrieving transaction details
+* Preventing duplicate transfer requests
+* Validating transfer rules
+* Tracking CREDIT and DEBIT transactions
+* Protecting transaction data from unauthorized access
 
-Only verified users can access protected APIs.
-
----
-
-# Authentication Flow
-
-## 1. Signup
-
-Endpoint:
-
-POST /api/v1/auth/signup
-
-What happens:
-
-1. User submits name, email, and password.
-
-2. Password is encrypted using BCrypt.
-
-3. User is saved in PostgreSQL with:
-
-   verified = false
-
-4. A 6-digit OTP is generated.
-
-5. OTP is stored in Redis for 5 minutes.
-
-Result:
-
-User account is created but cannot login yet.
+Only users involved in a transaction can access its details.
 
 ---
 
-## 2. OTP Verification
+# Transaction Flow
+
+## 1. Transfer Money
 
 Endpoint:
 
-POST /api/v1/auth/verify-otp
+POST /api/v1/transactions/transfer
 
 What happens:
 
-1. User submits email and OTP.
+1. Authenticated user initiates a transfer.
 
-2. OTP is fetched from Redis.
+2. Transfer amount is validated.
 
-3. OTP is validated.
+3. Receiver existence is verified.
 
-4. User verified status is updated:
+4. Self-transfer attempts are rejected.
 
-   verified = true
+5. Sender and receiver wallets are fetched.
 
-5. OTP is removed from Redis.
+6. Sender balance is checked.
+
+7. Transaction is created with:
+
+   status = PENDING
+
+8. Sender wallet balance is reduced.
+
+9. Receiver wallet balance is increased.
+
+10. Wallet updates are saved.
+
+11. Transaction status is updated:
+
+    status = SUCCESS
+
+12. Transaction is stored in PostgreSQL.
 
 Result:
 
-User account becomes active.
+Money is transferred successfully between users.
 
 ---
 
-## 3. Login
+## 2. Get My Transactions
 
 Endpoint:
 
-POST /api/v1/auth/login
+GET /api/v1/transactions
 
 What happens:
 
-1. User enters email and password.
-2. System checks if user exists.
-3. System checks if account is verified.
-4. Password is validated.
-5. JWT token is generated.
-6. JWT is stored in Redis for 3 hours.
-7. JWT is returned to the client.
+1. Current authenticated user is identified.
+
+2. All transactions are fetched where the user is either:
+
+   sender
+
+   or
+
+   receiver
+
+3. Transaction direction is determined:
+
+   CREDIT
+
+   or
+
+   DEBIT
+
+4. Transaction history is returned.
 
 Result:
 
-User is authenticated.
+User receives their complete transaction history.
+
+---
+
+## 3. Get Transaction By ID
+
+Endpoint:
+
+GET /api/v1/transactions/{transactionId}
+
+What happens:
+
+1. Transaction is fetched using its ID.
+
+2. System verifies that the current user is either:
+
+   sender
+
+   or
+
+   receiver
+
+3. Transaction direction is determined.
+
+4. Transaction details are returned.
+
+Result:
+
+Authorized users can view transaction details.
+
+Unauthorized users cannot access them.
+
+---
+
+# Transaction Types
+
+## TRANSFER
+
+Represents money transferred between users.
+
+Example:
+
+User A sends money to User B.
+
+---
+
+## ADD_MONEY
+
+Represents money added to the wallet.
+
+Reserved for wallet operations.
+
+---
+
+## WITHDRAW
+
+Represents money withdrawn from the wallet.
+
+Reserved for wallet operations.
+
+---
+
+# Transaction Status
+
+## PENDING
+
+Transaction has been initiated but not completed.
+
+---
+
+## SUCCESS
+
+Transaction completed successfully.
+
+---
+
+## FAILED
+
+Transaction processing failed.
+
+Reserved for future enhancements.
+
+---
+
+# Transaction Direction
+
+## DEBIT
+
+Money moved out of the user's account.
+
+Example:
+
+User sends money.
+
+---
+
+## CREDIT
+
+Money moved into the user's account.
+
+Example:
+
+User receives money.
+
+---
+
+# Idempotency Support
+
+Transfers require an idempotency key.
+
+Header:
+
+Idempotency-Key: <unique-key>
+
+Example:
+
+Idempotency-Key: transfer-001
+
+Purpose:
+
+Prevents accidental duplicate transfer processing caused by retries or repeated requests.
+
+---
+
+# Transfer Validation Rules
+
+## Minimum Transfer Amount
+
+Minimum allowed amount:
+
+$1
+
+Transfers below this amount are rejected.
+
+---
+
+## Maximum Transfer Amount
+
+Maximum allowed amount:
+
+$100
+
+Transfers above this amount are rejected.
+
+---
+
+## Self Transfer Prevention
+
+Users cannot transfer money to themselves.
+
+Such requests are rejected.
+
+---
+
+## Receiver Validation
+
+Receiver account must exist.
+
+Transfers to invalid users are rejected.
+
+---
+
+## Balance Validation
+
+Sender must have sufficient wallet balance.
+
+Insufficient balance results in transfer rejection.
 
 ---
 
 # Route Types
 
-## Public Routes
-
-These routes do not require authentication.
-
-POST /api/v1/auth/signup
-
-POST /api/v1/auth/verify-otp
-
-POST /api/v1/auth/login
-
-Anyone can access these routes.
-
----
-
 ## Protected Routes
 
 These routes require a valid JWT.
 
-GET /api/v1/auth/me
+POST /api/v1/transactions/transfer
 
-POST /api/v1/auth/logout
+GET /api/v1/transactions
 
-A request without a valid JWT will be rejected.
+GET /api/v1/transactions/{transactionId}
 
----
-
-# JWT Authentication Flow
-
-Client sends:
-
-Authorization: Bearer <jwt-token>
-
-Request Flow:
-
-Request
-→ JwtFilter
-→ Extract JWT
-→ Validate JWT Signature
-→ Extract Email
-→ Check Redis Session
-→ Authenticate User
-→ Allow Request
-
-If any step fails:
-
-Request Rejected
+Requests without valid authentication are rejected.
 
 ---
 
-# Redis Usage
+# Transaction Storage
 
-## OTP Storage
+Transactions are stored in PostgreSQL.
 
-Key Format:
+Each transaction stores:
 
-otp:user@email.com
-
-Example:
-
-otp:harsh233390@gmail.com
-
-Expiry:
-
-5 Minutes
+* Sender ID
+* Receiver ID
+* Amount
+* Transaction Type
+* Transaction Status
+* Idempotency Key
+* Created Timestamp
 
 Purpose:
 
-Stores temporary OTP for account verification.
-
----
-
-## JWT Session Storage
-
-Key Format:
-
-jwt:user@email.com
-
-Example:
-
-jwt:harsh233390@gmail.com
-
-Expiry:
-
-3 Hours
-
-Purpose:
-
-Stores active user session.
-
----
-
-# Current User Endpoint
-
-Endpoint:
-
-GET /api/v1/auth/me
-
-Purpose:
-
-Returns currently authenticated user information.
-
-Response Example:
-
-{
-"id": 1,
-"name": "Harsh",
-"email": "[harsh233390@gmail.com](mailto:harsh233390@gmail.com)"
-}
-
-Password is never returned.
-
----
-
-# Logout
-
-Endpoint:
-
-POST /api/v1/auth/logout
-
-What happens:
-
-1. User JWT is identified.
-2. JWT session is removed from Redis.
-3. Security context is cleared.
-
-Result:
-
-User is logged out.
-
-Previously issued JWT tokens become invalid immediately.
+Provides a permanent audit trail of user activity.
 
 ---
 
 # Security Features
 
-## Password Encryption
+## Ownership Validation
 
-BCrypt hashing is used before storing passwords.
+Users can only access transactions that belong to them.
 
----
-
-## Email Verification
-
-Only verified users can login.
+Unauthorized access attempts are rejected.
 
 ---
 
 ## JWT Authentication
 
-Protected routes require a valid JWT.
+All transaction endpoints require valid authentication.
 
 ---
 
-## Redis Session Validation
+## Duplicate Transfer Prevention
 
-JWT must exist in Redis.
-
-A valid JWT without a Redis session is rejected.
+Idempotency keys prevent duplicate transaction execution.
 
 ---
 
-## Token Revocation
+## Transaction Integrity
 
-Logout immediately invalidates previously issued JWTs.
+Money deduction and credit operations occur within a single transaction.
+
+If any operation fails, changes are rolled back.
+
+---
+
+# Unit Testing
+
+The Transaction Module includes tests for:
+
+* Successful money transfer
+* Insufficient balance handling
+* Self-transfer prevention
+* Minimum amount validation
+* Maximum amount validation
+* Receiver not found scenarios
+* Transaction history retrieval
+* CREDIT direction mapping
+* DEBIT direction mapping
+* Transaction detail retrieval
+* Unauthorized transaction access
 
 ---
 
@@ -268,12 +350,12 @@ Status: COMPLETE
 
 Implemented Features:
 
-* Signup
-* OTP Verification
-* Login
-* JWT Authentication
-* Redis Session Management
-* Protected Routes
-* Current User Endpoint
-* Logout
-* Token Revocation
+* Money Transfer
+* Transaction History
+* Transaction Details
+* CREDIT/DEBIT Direction Support
+* Idempotency Key Support
+* Ownership Validation
+* Transfer Validations
+* Global Exception Handling
+* Unit Tests
