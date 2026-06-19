@@ -2,7 +2,9 @@ package com.nivora.nivora_finance_backend.transaction.service;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
+import com.nivora.nivora_finance_backend.transaction.mapper.TransactionMapper;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -36,287 +38,309 @@ import com.nivora.nivora_finance_backend.wallet.repository.WalletRepository;
 @ExtendWith(MockitoExtension.class)
 class TransactionServiceImplTest {
 
-    @Mock
-    private TransactionRepository transactionRepository;
+        @Mock
+        private TransactionRepository transactionRepository;
 
-    @Mock
-    private WalletRepository walletRepository;
+        @Mock
+        private WalletRepository walletRepository;
+
+        @Mock
+        private UserRepository userRepository;
 
-    @Mock
-    private UserRepository userRepository;
+        @Mock
+        private SecurityContext securityContext;
 
-    @Mock
-    private SecurityContext securityContext;
+        @Mock
+        private TransactionMapper transactionMapper;
 
-    @InjectMocks
-    private TransactionServiceImpl transactionService;
+        @InjectMocks
+        private TransactionServiceImpl transactionService;
 
-    private User sender;
-    private User receiver;
-    private Wallet senderWallet;
-    private Wallet receiverWallet;
+        private User sender;
+        private User receiver;
+        private Wallet senderWallet;
+        private Wallet receiverWallet;
 
-    @BeforeEach
-    void setUp() {
-        sender = new User();
-        sender.setId(1L);
+        @BeforeEach
+        void setUp() {
+                sender = new User();
+                sender.setId(1L);
 
-        receiver = new User();
-        receiver.setId(2L);
+                receiver = new User();
+                receiver.setId(2L);
 
-        senderWallet = Wallet.builder()
-                .balance(BigDecimal.valueOf(100))
-                .build();
+                senderWallet = Wallet.builder()
+                                .balance(BigDecimal.valueOf(100))
+                                .build();
 
-        receiverWallet = Wallet.builder()
-                .balance(BigDecimal.valueOf(50))
-                .build();
+                receiverWallet = Wallet.builder()
+                                .balance(BigDecimal.valueOf(50))
+                                .build();
 
-        SecurityContextHolder.setContext(securityContext);
-        when(securityContext.getAuthentication()).thenReturn(mock(org.springframework.security.core.Authentication.class));
+                SecurityContextHolder.setContext(securityContext);
+                when(securityContext.getAuthentication())
+                                .thenReturn(mock(org.springframework.security.core.Authentication.class));
 
-        org.springframework.security.core.Authentication authentication =
-                securityContext.getAuthentication();
+                org.springframework.security.core.Authentication authentication = securityContext.getAuthentication();
 
-        when(authentication.getPrincipal()).thenReturn(sender);
-    }
+                when(authentication.getPrincipal()).thenReturn(sender);
+
+                lenient().when(transactionMapper.toResponse(
+                                any(Transaction.class),
+                                anyLong()))
+                                .thenAnswer(invocation -> {
 
-    @Test
-    void transferMoney_ShouldTransferSuccessfully() {
+                                        Transaction t = invocation.getArgument(0);
+                                        Long userId = invocation.getArgument(1);
 
-        TransferRequest request = new TransferRequest();
-        request.setReceiverId(2L);
-        request.setAmount(BigDecimal.valueOf(20));
+                                        TransactionDirection direction = t.getSenderId().equals(userId)
+                                                        ? TransactionDirection.DEBIT
+                                                        : TransactionDirection.CREDIT;
 
-        when(userRepository.findById(2L))
-                .thenReturn(Optional.of(receiver));
+                                        return TransactionResponse.builder()
+                                                        .transactionId(t.getId())
+                                                        .senderId(t.getSenderId())
+                                                        .receiverId(t.getReceiverId())
+                                                        .amount(t.getAmount())
+                                                        .status(t.getStatus())
+                                                        .type(t.getType())
+                                                        .direction(direction)
+                                                        .build();
+                                });
+        }
+
+        @Test
+        void transferMoney_ShouldTransferSuccessfully() {
+
+                TransferRequest request = new TransferRequest();
+                request.setReceiverId(2L);
+                request.setAmount(BigDecimal.valueOf(20));
 
-        when(walletRepository.findByUserId(1L))
-                .thenReturn(Optional.of(senderWallet));
+                when(userRepository.findById(2L))
+                                .thenReturn(Optional.of(receiver));
 
-        when(walletRepository.findByUserId(2L))
-                .thenReturn(Optional.of(receiverWallet));
+                when(walletRepository.findByUserId(1L))
+                                .thenReturn(Optional.of(senderWallet));
 
-        when(transactionRepository.save(any(Transaction.class)))
-                .thenAnswer(invocation -> {
-                    Transaction t = invocation.getArgument(0);
-                    t.setId(1L);
-                    return t;
-                });
+                when(walletRepository.findByUserId(2L))
+                                .thenReturn(Optional.of(receiverWallet));
 
-        TransactionResponse response =
-                transactionService.transferMoney(
-                        request,
-                        "test-key");
+                when(transactionRepository.save(any(Transaction.class)))
+                                .thenAnswer(invocation -> {
+                                        Transaction t = invocation.getArgument(0);
+                                        t.setId(1L);
+                                        return t;
+                                });
+
+                TransactionResponse response = transactionService.transferMoney(
+                                request,
+                                "test-key");
 
-        assertNotNull(response);
-        assertEquals(1L, response.getTransactionId());
-        assertEquals("Transfer successful", response.getMessage());
+                assertNotNull(response);
+                assertEquals(1L, response.getTransactionId());
+                assertEquals("Transfer successful", response.getMessage());
 
-        assertEquals(
-                BigDecimal.valueOf(80),
-                senderWallet.getBalance());
+                assertEquals(
+                                BigDecimal.valueOf(80),
+                                senderWallet.getBalance());
+
+                assertEquals(
+                                BigDecimal.valueOf(70),
+                                receiverWallet.getBalance());
+        }
+
+        @Test
+        void transferMoney_ShouldThrow_WhenInsufficientFunds() {
+
+                senderWallet.setBalance(BigDecimal.valueOf(5));
 
-        assertEquals(
-                BigDecimal.valueOf(70),
-                receiverWallet.getBalance());
-    }
-
-    @Test
-    void transferMoney_ShouldThrow_WhenInsufficientFunds() {
-
-        senderWallet.setBalance(BigDecimal.valueOf(5));
-
-        TransferRequest request = new TransferRequest();
-        request.setReceiverId(2L);
-        request.setAmount(BigDecimal.valueOf(20));
-
-        when(userRepository.findById(2L))
-                .thenReturn(Optional.of(receiver));
-
-        when(walletRepository.findByUserId(1L))
-                .thenReturn(Optional.of(senderWallet));
-
-        when(walletRepository.findByUserId(2L))
-                .thenReturn(Optional.of(receiverWallet));
-
-        assertThrows(
-                InsufficientFundsException.class,
-                () -> transactionService.transferMoney(
-                        request,
-                        "test-key"));
-    }
-
-    @Test
-    void getMyTransactions_ShouldReturnTransactions() {
-
-        Transaction transaction = Transaction.builder()
-                .id(1L)
-                .senderId(1L)
-                .receiverId(2L)
-                .amount(BigDecimal.TEN)
-                .status(TransactionStatus.SUCCESS)
-                .type(TransactionType.TRANSFER)
-                .build();
-
-        when(transactionRepository.findBySenderIdOrReceiverId(1L, 1L))
-                .thenReturn(List.of(transaction));
-
-        List<TransactionResponse> responses =
-                transactionService.getMyTransactions();
-
-        assertEquals(1, responses.size());
-
-        assertEquals(
-                TransactionDirection.DEBIT,
-                responses.get(0).getDirection());
-    }
-
-    @Test
-    void getTransactionById_ShouldReturnTransaction() {
-
-        Transaction transaction = Transaction.builder()
-                .id(1L)
-                .senderId(1L)
-                .receiverId(2L)
-                .amount(BigDecimal.TEN)
-                .status(TransactionStatus.SUCCESS)
-                .type(TransactionType.TRANSFER)
-                .build();
-
-        when(transactionRepository.findById(1L))
-                .thenReturn(Optional.of(transaction));
-
-        TransactionResponse response =
-                transactionService.getTransactionById(1L);
-
-        assertEquals(1L, response.getTransactionId());
-        assertEquals(
-                TransactionDirection.DEBIT,
-                response.getDirection());
-    }
-
-    @Test
-    void getTransactionById_ShouldThrow_WhenTransactionNotFound() {
-
-        when(transactionRepository.findById(1L))
-                .thenReturn(Optional.empty());
-
-        assertThrows(
-                ResourceNotFoundException.class,
-                () -> transactionService.getTransactionById(1L));
-    }
-
-    @Test
-void transferMoney_ShouldThrow_WhenAmountLessThan1() {
-
-    TransferRequest request = new TransferRequest();
-    request.setReceiverId(2L);
-    request.setAmount(BigDecimal.ZERO);
-
-    assertThrows(
-            IllegalArgumentException.class,
-            () -> transactionService.transferMoney(
-                    request,
-                    "test-key"));
-}
-
-@Test
-void transferMoney_ShouldThrow_WhenAmountGreaterThan100() {
-
-    TransferRequest request = new TransferRequest();
-    request.setReceiverId(2L);
-    request.setAmount(BigDecimal.valueOf(101));
-
-    assertThrows(
-            IllegalArgumentException.class,
-            () -> transactionService.transferMoney(
-                    request,
-                    "test-key"));
-}
-
-@Test
-void transferMoney_ShouldThrow_WhenReceiverNotFound() {
-
-    TransferRequest request = new TransferRequest();
-    request.setReceiverId(2L);
-    request.setAmount(BigDecimal.TEN);
-
-    when(userRepository.findById(2L))
-            .thenReturn(Optional.empty());
-
-    assertThrows(
-            ResourceNotFoundException.class,
-            () -> transactionService.transferMoney(
-                    request,
-                    "test-key"));
-}
-
-@Test
-void transferMoney_ShouldThrow_WhenSelfTransfer() {
-
-    TransferRequest request = new TransferRequest();
-    request.setReceiverId(1L);
-    request.setAmount(BigDecimal.TEN);
-
-    when(userRepository.findById(1L))
-            .thenReturn(Optional.of(sender));
-
-    assertThrows(
-            IllegalArgumentException.class,
-            () -> transactionService.transferMoney(
-                    request,
-                    "test-key"));
-}
-
-@Test
-void getTransactionById_ShouldThrow_WhenUserDoesNotOwnTransaction() {
-
-    Transaction transaction = Transaction.builder()
-            .id(1L)
-            .senderId(2L)
-            .receiverId(3L)
-            .amount(BigDecimal.TEN)
-            .status(TransactionStatus.SUCCESS)
-            .type(TransactionType.TRANSFER)
-            .build();
-
-    when(transactionRepository.findById(1L))
-            .thenReturn(Optional.of(transaction));
-
-    assertThrows(
-            ResourceNotFoundException.class,
-            () -> transactionService.getTransactionById(1L));
-}
-
-@Test
-void getMyTransactions_ShouldReturnCreditDirection() {
-
-    Transaction transaction = Transaction.builder()
-            .id(1L)
-            .senderId(2L)
-            .receiverId(1L)
-            .amount(BigDecimal.TEN)
-            .status(TransactionStatus.SUCCESS)
-            .type(TransactionType.TRANSFER)
-            .build();
-
-    when(transactionRepository.findBySenderIdOrReceiverId(1L, 1L))
-            .thenReturn(List.of(transaction));
-
-    List<TransactionResponse> responses =
-            transactionService.getMyTransactions();
-
-    assertEquals(1, responses.size());
-
-    assertEquals(
-            TransactionDirection.CREDIT,
-            responses.get(0).getDirection());
-}
-
-@AfterEach
-void tearDown() {
-    SecurityContextHolder.clearContext();
-}
+                TransferRequest request = new TransferRequest();
+                request.setReceiverId(2L);
+                request.setAmount(BigDecimal.valueOf(20));
+
+                when(userRepository.findById(2L))
+                                .thenReturn(Optional.of(receiver));
+
+                when(walletRepository.findByUserId(1L))
+                                .thenReturn(Optional.of(senderWallet));
+
+                when(walletRepository.findByUserId(2L))
+                                .thenReturn(Optional.of(receiverWallet));
+
+                assertThrows(
+                                InsufficientFundsException.class,
+                                () -> transactionService.transferMoney(
+                                                request,
+                                                "test-key"));
+        }
+
+        @Test
+        void getMyTransactions_ShouldReturnTransactions() {
+
+                Transaction transaction = Transaction.builder()
+                                .id(1L)
+                                .senderId(1L)
+                                .receiverId(2L)
+                                .amount(BigDecimal.TEN)
+                                .status(TransactionStatus.SUCCESS)
+                                .type(TransactionType.TRANSFER)
+                                .build();
+
+                when(transactionRepository.findBySenderIdOrReceiverId(1L, 1L))
+                                .thenReturn(List.of(transaction));
+
+                List<TransactionResponse> responses = transactionService.getMyTransactions();
+
+                assertEquals(1, responses.size());
+
+                assertEquals(
+                                TransactionDirection.DEBIT,
+                                responses.get(0).getDirection());
+        }
+
+        @Test
+        void getTransactionById_ShouldReturnTransaction() {
+
+                Transaction transaction = Transaction.builder()
+                                .id(1L)
+                                .senderId(1L)
+                                .receiverId(2L)
+                                .amount(BigDecimal.TEN)
+                                .status(TransactionStatus.SUCCESS)
+                                .type(TransactionType.TRANSFER)
+                                .build();
+
+                when(transactionRepository.findById(1L))
+                                .thenReturn(Optional.of(transaction));
+
+                TransactionResponse response = transactionService.getTransactionById(1L);
+
+                assertEquals(1L, response.getTransactionId());
+                assertEquals(
+                                TransactionDirection.DEBIT,
+                                response.getDirection());
+        }
+
+        @Test
+        void getTransactionById_ShouldThrow_WhenTransactionNotFound() {
+
+                when(transactionRepository.findById(1L))
+                                .thenReturn(Optional.empty());
+
+                assertThrows(
+                                ResourceNotFoundException.class,
+                                () -> transactionService.getTransactionById(1L));
+        }
+
+        @Test
+        void transferMoney_ShouldThrow_WhenAmountLessThan1() {
+
+                TransferRequest request = new TransferRequest();
+                request.setReceiverId(2L);
+                request.setAmount(BigDecimal.ZERO);
+
+                assertThrows(
+                                IllegalArgumentException.class,
+                                () -> transactionService.transferMoney(
+                                                request,
+                                                "test-key"));
+        }
+
+        @Test
+        void transferMoney_ShouldThrow_WhenAmountGreaterThan100() {
+
+                TransferRequest request = new TransferRequest();
+                request.setReceiverId(2L);
+                request.setAmount(BigDecimal.valueOf(101));
+
+                assertThrows(
+                                IllegalArgumentException.class,
+                                () -> transactionService.transferMoney(
+                                                request,
+                                                "test-key"));
+        }
+
+        @Test
+        void transferMoney_ShouldThrow_WhenReceiverNotFound() {
+
+                TransferRequest request = new TransferRequest();
+                request.setReceiverId(2L);
+                request.setAmount(BigDecimal.TEN);
+
+                when(userRepository.findById(2L))
+                                .thenReturn(Optional.empty());
+
+                assertThrows(
+                                ResourceNotFoundException.class,
+                                () -> transactionService.transferMoney(
+                                                request,
+                                                "test-key"));
+        }
+
+        @Test
+        void transferMoney_ShouldThrow_WhenSelfTransfer() {
+
+                TransferRequest request = new TransferRequest();
+                request.setReceiverId(1L);
+                request.setAmount(BigDecimal.TEN);
+
+                when(userRepository.findById(1L))
+                                .thenReturn(Optional.of(sender));
+
+                assertThrows(
+                                IllegalArgumentException.class,
+                                () -> transactionService.transferMoney(
+                                                request,
+                                                "test-key"));
+        }
+
+        @Test
+        void getTransactionById_ShouldThrow_WhenUserDoesNotOwnTransaction() {
+
+                Transaction transaction = Transaction.builder()
+                                .id(1L)
+                                .senderId(2L)
+                                .receiverId(3L)
+                                .amount(BigDecimal.TEN)
+                                .status(TransactionStatus.SUCCESS)
+                                .type(TransactionType.TRANSFER)
+                                .build();
+
+                when(transactionRepository.findById(1L))
+                                .thenReturn(Optional.of(transaction));
+
+                assertThrows(
+                                ResourceNotFoundException.class,
+                                () -> transactionService.getTransactionById(1L));
+        }
+
+        @Test
+        void getMyTransactions_ShouldReturnCreditDirection() {
+
+                Transaction transaction = Transaction.builder()
+                                .id(1L)
+                                .senderId(2L)
+                                .receiverId(1L)
+                                .amount(BigDecimal.TEN)
+                                .status(TransactionStatus.SUCCESS)
+                                .type(TransactionType.TRANSFER)
+                                .build();
+
+                when(transactionRepository.findBySenderIdOrReceiverId(1L, 1L))
+                                .thenReturn(List.of(transaction));
+
+                List<TransactionResponse> responses = transactionService.getMyTransactions();
+
+                assertEquals(1, responses.size());
+
+                assertEquals(
+                                TransactionDirection.CREDIT,
+                                responses.get(0).getDirection());
+        }
+
+        @AfterEach
+        void tearDown() {
+                SecurityContextHolder.clearContext();
+        }
 
 }

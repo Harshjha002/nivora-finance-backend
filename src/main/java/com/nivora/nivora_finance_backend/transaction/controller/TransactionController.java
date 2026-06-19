@@ -1,6 +1,5 @@
 package com.nivora.nivora_finance_backend.transaction.controller;
 
-
 import java.util.List;
 
 import org.springframework.web.bind.annotation.*;
@@ -40,5 +39,12 @@ public class TransactionController {
 
         return transactionService.getTransactionById(
                 transactionId);
+    }
+
+    @GetMapping("/search")
+    public List<TransactionResponse> searchTransactions(
+            @RequestParam String q) {
+
+        return transactionService.searchTransactions(q);
     }
 }

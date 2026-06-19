@@ -15,4 +15,6 @@ public interface TransactionService {
 
     TransactionResponse getTransactionById(
             Long transactionId);
+
+            List<TransactionResponse> searchTransactions(String keyword);
 }
