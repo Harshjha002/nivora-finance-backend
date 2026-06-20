@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.nivora.nivora_finance_backend.transaction.dto.request.TransferRequest;
 import com.nivora.nivora_finance_backend.transaction.dto.response.TransactionResponse;
+import com.nivora.nivora_finance_backend.transaction.dto.response.TransactionSummaryResponse;
 import com.nivora.nivora_finance_backend.transaction.service.TransactionService;
 
 import lombok.AllArgsConstructor;
@@ -46,5 +47,11 @@ public class TransactionController {
             @RequestParam String q) {
 
         return transactionService.searchTransactions(q);
+    }
+
+    @GetMapping("/summary")
+    public TransactionSummaryResponse getSummary() {
+
+        return transactionService.getSummary();
     }
 }

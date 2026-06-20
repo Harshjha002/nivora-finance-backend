@@ -14,6 +14,7 @@ import com.nivora.nivora_finance_backend.common.exception.InsufficientFundsExcep
 import com.nivora.nivora_finance_backend.common.exception.ResourceNotFoundException;
 import com.nivora.nivora_finance_backend.transaction.dto.request.TransferRequest;
 import com.nivora.nivora_finance_backend.transaction.dto.response.TransactionResponse;
+import com.nivora.nivora_finance_backend.transaction.dto.response.TransactionSummaryResponse;
 import com.nivora.nivora_finance_backend.transaction.entity.Transaction;
 import com.nivora.nivora_finance_backend.transaction.entity.TransactionStatus;
 import com.nivora.nivora_finance_backend.transaction.entity.TransactionType;
@@ -204,5 +205,32 @@ public class TransactionServiceImpl implements TransactionService {
                                                 transaction,
                                                 user.getId()))
                                 .toList();
+        }
+
+        @Override
+        public TransactionSummaryResponse getSummary() {
+
+                System.out.println("SUMMARY METHOD CALLED");
+                User user = getCurrentUser();
+
+                List<Transaction> transactions = transactionRepository.findBySenderIdOrReceiverId(
+                                user.getId(),
+                                user.getId());
+
+                BigDecimal totalSent = transactions.stream()
+                                .filter(t -> t.getSenderId().equals(user.getId()))
+                                .map(Transaction::getAmount)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                BigDecimal totalReceived = transactions.stream()
+                                .filter(t -> t.getReceiverId().equals(user.getId()))
+                                .map(Transaction::getAmount)
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                return TransactionSummaryResponse.builder()
+                                .totalSent(totalSent)
+                                .totalReceived(totalReceived)
+                                .transactionCount((long) transactions.size())
+                                .build();
         }
 }
