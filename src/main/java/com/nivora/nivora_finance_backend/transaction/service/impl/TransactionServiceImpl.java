@@ -1,8 +1,10 @@
 package com.nivora.nivora_finance_backend.transaction.service.impl;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,6 +15,7 @@ import com.nivora.nivora_finance_backend.auth.repository.UserRepository;
 import com.nivora.nivora_finance_backend.common.exception.InsufficientFundsException;
 import com.nivora.nivora_finance_backend.common.exception.ResourceNotFoundException;
 import com.nivora.nivora_finance_backend.transaction.dto.request.TransferRequest;
+import com.nivora.nivora_finance_backend.transaction.dto.response.RecentContactResponse;
 import com.nivora.nivora_finance_backend.transaction.dto.response.TransactionResponse;
 import com.nivora.nivora_finance_backend.transaction.dto.response.TransactionSummaryResponse;
 import com.nivora.nivora_finance_backend.transaction.entity.Transaction;
@@ -232,5 +235,40 @@ public class TransactionServiceImpl implements TransactionService {
                                 .totalReceived(totalReceived)
                                 .transactionCount((long) transactions.size())
                                 .build();
+        }
+
+        @Override
+        public List<RecentContactResponse> getRecentContacts() {
+
+                User currentUser = getCurrentUser();
+
+                List<Transaction> transactions = transactionRepository.findBySenderIdOrReceiverId(
+                                currentUser.getId(),
+                                currentUser.getId());
+
+                Set<Long> contactIds = new LinkedHashSet<>();
+
+                for (Transaction transaction : transactions) {
+
+                        Long contactId;
+
+                        if (transaction.getSenderId().equals(currentUser.getId())) {
+                                contactId = transaction.getReceiverId();
+                        } else {
+                                contactId = transaction.getSenderId();
+                        }
+
+                        contactIds.add(contactId);
+                }
+
+                return contactIds.stream()
+                                .map(userId -> userRepository.findById(userId)
+                                                .orElseThrow(() -> new ResourceNotFoundException("User not found")))
+                                .map(user -> RecentContactResponse.builder()
+                                                .userId(user.getId())
+                                                .name(user.getName())
+                                                .email(user.getEmail())
+                                                .build())
+                                .toList();
         }
 }

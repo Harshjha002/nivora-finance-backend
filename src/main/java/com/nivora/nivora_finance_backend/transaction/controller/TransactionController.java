@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.web.bind.annotation.*;
 
 import com.nivora.nivora_finance_backend.transaction.dto.request.TransferRequest;
+import com.nivora.nivora_finance_backend.transaction.dto.response.RecentContactResponse;
 import com.nivora.nivora_finance_backend.transaction.dto.response.TransactionResponse;
 import com.nivora.nivora_finance_backend.transaction.dto.response.TransactionSummaryResponse;
 import com.nivora.nivora_finance_backend.transaction.service.TransactionService;
@@ -53,5 +54,11 @@ public class TransactionController {
     public TransactionSummaryResponse getSummary() {
 
         return transactionService.getSummary();
+    }
+
+    @GetMapping("/recent-contacts")
+    public List<RecentContactResponse> getRecentContacts() {
+
+        return transactionService.getRecentContacts();
     }
 }

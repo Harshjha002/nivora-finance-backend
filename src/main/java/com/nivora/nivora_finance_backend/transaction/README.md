@@ -1,173 +1,361 @@
-# Transaction Module
+# Nivora Finance - Transaction Module
 
-The Transaction Module is responsible for handling money transfers between users and maintaining transaction history within Nivora Finance.
+## Purpose
 
-## Features
+The Transaction Module is responsible for:
 
-* Transfer money between users
-* Retrieve transaction history for the authenticated user
-* Retrieve transaction details by transaction ID
-* Prevent self-transfers
-* Validate minimum and maximum transfer limits
-* Validate receiver existence
-* Validate sufficient wallet balance
-* Support idempotency keys to prevent duplicate transfer requests
-* Protect transaction details from unauthorized access
-* Return transaction direction (CREDIT/DEBIT) for transaction history
+* Transferring money between users
+* Maintaining transaction history
+* Retrieving transaction details
+* Preventing duplicate transfer requests
+* Validating transfer rules
+* Tracking CREDIT and DEBIT transactions
+* Protecting transaction data from unauthorized access
 
----
-
-## APIs
-
-### Transfer Money
-
-**POST** `/api/v1/transactions/transfer`
-
-Transfers money from the authenticated user to another user.
-
-#### Request Headers
-
-```http
-Authorization: Bearer <JWT_TOKEN>
-Idempotency-Key: <UNIQUE_KEY>
-```
-
-#### Request Body
-
-```json
-{
-    "receiverId": 2,
-    "amount": 10
-}
-```
-
-#### Success Response
-
-```json
-{
-    "transactionId": 7,
-    "senderId": 1,
-    "receiverId": 2,
-    "amount": 10,
-    "status": "SUCCESS",
-    "type": "TRANSFER",
-    "createdAt": "2026-06-13T08:31:26.489643",
-    "message": "Transfer successful"
-}
-```
+Only users involved in a transaction can access its details.
 
 ---
 
-### Get My Transactions
+# Transaction Flow
 
-**GET** `/api/v1/transactions`
+## 1. Transfer Money
 
-Returns all transactions where the authenticated user is either the sender or receiver.
+Endpoint:
 
-#### Request Headers
+POST /api/v1/transactions/transfer
 
-```http
-Authorization: Bearer <JWT_TOKEN>
-```
+What happens:
 
-#### Response
+1. Authenticated user initiates a transfer.
 
-```json
-[
-    {
-        "transactionId": 1,
-        "senderId": 1,
-        "receiverId": 2,
-        "amount": 20,
-        "status": "SUCCESS",
-        "type": "TRANSFER",
-        "direction": "DEBIT",
-        "createdAt": "2026-06-13T07:43:37.47804"
-    }
-]
-```
+2. Transfer amount is validated.
 
----
+3. Receiver existence is verified.
 
-### Get Transaction By ID
+4. Self-transfer attempts are rejected.
 
-**GET** `/api/v1/transactions/{transactionId}`
+5. Sender and receiver wallets are fetched.
 
-Returns details of a specific transaction if the authenticated user owns it.
+6. Sender balance is checked.
 
-#### Request Headers
+7. Transaction is created with:
 
-```http
-Authorization: Bearer <JWT_TOKEN>
-```
+   status = PENDING
 
-#### Response
+8. Sender wallet balance is reduced.
 
-```json
-{
-    "transactionId": 7,
-    "senderId": 1,
-    "receiverId": 2,
-    "amount": 10,
-    "status": "SUCCESS",
-    "type": "TRANSFER",
-    "direction": "DEBIT",
-    "createdAt": "2026-06-13T08:31:26.489643"
-}
-```
+9. Receiver wallet balance is increased.
+
+10. Wallet updates are saved.
+
+11. Transaction status is updated:
+
+    status = SUCCESS
+
+12. Transaction is stored in PostgreSQL.
+
+Result:
+
+Money is transferred successfully between users.
 
 ---
 
-## Business Rules
+## 2. Get My Transactions
 
-* Minimum transfer amount: **$1**
-* Maximum transfer amount: **$100**
-* Users cannot transfer money to themselves.
-* Users cannot transfer more than their available wallet balance.
-* The receiver must exist.
-* Both sender and receiver must have wallets.
-* Users can only view transactions that belong to them.
+Endpoint:
+
+GET /api/v1/transactions
+
+What happens:
+
+1. Current authenticated user is identified.
+
+2. All transactions are fetched where the user is either:
+
+   sender
+
+   or
+
+   receiver
+
+3. Transaction direction is determined:
+
+   CREDIT
+
+   or
+
+   DEBIT
+
+4. Transaction history is returned.
+
+Result:
+
+User receives their complete transaction history.
 
 ---
 
-## Idempotency Support
+## 3. Get Transaction By ID
 
-Transfers support idempotency keys to prevent duplicate transaction processing.
+Endpoint:
+
+GET /api/v1/transactions/{transactionId}
+
+What happens:
+
+1. Transaction is fetched using its ID.
+
+2. System verifies that the current user is either:
+
+   sender
+
+   or
+
+   receiver
+
+3. Transaction direction is determined.
+
+4. Transaction details are returned.
+
+Result:
+
+Authorized users can view transaction details.
+
+Unauthorized users cannot access them.
+
+---
+
+# Transaction Types
+
+## TRANSFER
+
+Represents money transferred between users.
 
 Example:
 
-```http
-Idempotency-Key: transfer-001
-```
-
-Submitting the same key multiple times prevents accidental duplicate transfers.
+User A sends money to User B.
 
 ---
 
-## Unit Tests
+## ADD_MONEY
 
-The Transaction Module includes unit tests covering:
+Represents money added to the wallet.
 
-* Successful transfers
-* Insufficient balance scenarios
+Reserved for wallet operations.
+
+---
+
+## WITHDRAW
+
+Represents money withdrawn from the wallet.
+
+Reserved for wallet operations.
+
+---
+
+# Transaction Status
+
+## PENDING
+
+Transaction has been initiated but not completed.
+
+---
+
+## SUCCESS
+
+Transaction completed successfully.
+
+---
+
+## FAILED
+
+Transaction processing failed.
+
+Reserved for future enhancements.
+
+---
+
+# Transaction Direction
+
+## DEBIT
+
+Money moved out of the user's account.
+
+Example:
+
+User sends money.
+
+---
+
+## CREDIT
+
+Money moved into the user's account.
+
+Example:
+
+User receives money.
+
+---
+
+# Idempotency Support
+
+Transfers require an idempotency key.
+
+Header:
+
+Idempotency-Key: <unique-key>
+
+Example:
+
+Idempotency-Key: transfer-001
+
+Purpose:
+
+Prevents accidental duplicate transfer processing caused by retries or repeated requests.
+
+---
+
+# Transfer Validation Rules
+
+## Minimum Transfer Amount
+
+Minimum allowed amount:
+
+$1
+
+Transfers below this amount are rejected.
+
+---
+
+## Maximum Transfer Amount
+
+Maximum allowed amount:
+
+$100
+
+Transfers above this amount are rejected.
+
+---
+
+## Self Transfer Prevention
+
+Users cannot transfer money to themselves.
+
+Such requests are rejected.
+
+---
+
+## Receiver Validation
+
+Receiver account must exist.
+
+Transfers to invalid users are rejected.
+
+---
+
+## Balance Validation
+
+Sender must have sufficient wallet balance.
+
+Insufficient balance results in transfer rejection.
+
+---
+
+# Route Types
+
+## Protected Routes
+
+These routes require a valid JWT.
+
+POST /api/v1/transactions/transfer
+
+GET /api/v1/transactions
+
+GET /api/v1/transactions/{transactionId}
+
+Requests without valid authentication are rejected.
+
+---
+
+# Transaction Storage
+
+Transactions are stored in PostgreSQL.
+
+Each transaction stores:
+
+* Sender ID
+* Receiver ID
+* Amount
+* Transaction Type
+* Transaction Status
+* Idempotency Key
+* Created Timestamp
+
+Purpose:
+
+Provides a permanent audit trail of user activity.
+
+---
+
+# Security Features
+
+## Ownership Validation
+
+Users can only access transactions that belong to them.
+
+Unauthorized access attempts are rejected.
+
+---
+
+## JWT Authentication
+
+All transaction endpoints require valid authentication.
+
+---
+
+## Duplicate Transfer Prevention
+
+Idempotency keys prevent duplicate transaction execution.
+
+---
+
+## Transaction Integrity
+
+Money deduction and credit operations occur within a single transaction.
+
+If any operation fails, changes are rolled back.
+
+---
+
+# Unit Testing
+
+The Transaction Module includes tests for:
+
+* Successful money transfer
+* Insufficient balance handling
 * Self-transfer prevention
-* Invalid transfer amounts
+* Minimum amount validation
+* Maximum amount validation
 * Receiver not found scenarios
 * Transaction history retrieval
-* CREDIT/DEBIT direction mapping
+* CREDIT direction mapping
+* DEBIT direction mapping
 * Transaction detail retrieval
 * Unauthorized transaction access
-* Transaction not found scenarios
 
 ---
 
-## Technologies Used
+# Module Status
 
-* Spring Boot
-* Spring Security
-* Spring Data JPA
-* PostgreSQL
-* Redis
-* JUnit 5
-* Mockito
-* Lombok
+Status: COMPLETE
+
+Implemented Features:
+
+* Money Transfer
+* Transaction History
+* Transaction Details
+* CREDIT/DEBIT Direction Support
+* Idempotency Key Support
+* Ownership Validation
+* Transfer Validations
+* Global Exception Handling
+* Unit Tests

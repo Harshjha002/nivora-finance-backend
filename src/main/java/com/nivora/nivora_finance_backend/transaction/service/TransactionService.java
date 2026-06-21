@@ -3,6 +3,7 @@ package com.nivora.nivora_finance_backend.transaction.service;
 import java.util.List;
 
 import com.nivora.nivora_finance_backend.transaction.dto.request.TransferRequest;
+import com.nivora.nivora_finance_backend.transaction.dto.response.RecentContactResponse;
 import com.nivora.nivora_finance_backend.transaction.dto.response.TransactionResponse;
 import com.nivora.nivora_finance_backend.transaction.dto.response.TransactionSummaryResponse;
 
@@ -20,4 +21,6 @@ public interface TransactionService {
         List<TransactionResponse> searchTransactions(String keyword);
 
         TransactionSummaryResponse getSummary();
+
+        List<RecentContactResponse> getRecentContacts();
 }
