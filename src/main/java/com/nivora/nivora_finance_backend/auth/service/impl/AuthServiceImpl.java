@@ -14,6 +14,7 @@ import com.nivora.nivora_finance_backend.common.exception.InvalidOtpException;
 import com.nivora.nivora_finance_backend.common.exception.ResourceNotFoundException;
 import com.nivora.nivora_finance_backend.common.exception.UnauthorizedException;
 import com.nivora.nivora_finance_backend.common.exception.UserAlreadyExistsException;
+import com.nivora.nivora_finance_backend.notification.service.EmailService;
 import com.nivora.nivora_finance_backend.security.JwtService;
 import com.nivora.nivora_finance_backend.wallet.entity.Wallet;
 import com.nivora.nivora_finance_backend.wallet.repository.WalletRepository;
@@ -42,6 +43,7 @@ public class AuthServiceImpl implements AuthService {
         private final RedisTemplate<String, String> redisTemplate;
         private final JwtService jwtService;
         private final WalletRepository walletRepository;
+        private final EmailService emailService;
 
         @Override
         public void signup(SignupRequest req) {
@@ -74,7 +76,9 @@ public class AuthServiceImpl implements AuthService {
                                 otp,
                                 Duration.ofMinutes(5));
 
-                log.info("OTP for {} : {}", reqEmail, otp);
+                emailService.sendOtpEmail(
+                                reqEmail,
+                                otp);
 
         }
 
@@ -107,6 +111,10 @@ public class AuthServiceImpl implements AuthService {
                                 .build();
 
                 walletRepository.save(wallet);
+
+                emailService.sendWelcomeEmail(
+                                user.getEmail(),
+                                user.getName());
 
                 redisTemplate.delete(
                                 "otp:" + req.getEmail());
@@ -214,8 +222,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         @Override
-        public List<UserSearchResponse> searchUsers(
-                        String keyword) {
+        public List<UserSearchResponse> searchUsers(String keyword) {
 
                 Authentication authentication = SecurityContextHolder
                                 .getContext()

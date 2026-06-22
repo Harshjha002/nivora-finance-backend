@@ -14,6 +14,7 @@ import com.nivora.nivora_finance_backend.auth.dto.response.AuthResponse;
 import com.nivora.nivora_finance_backend.auth.dto.response.UserProfileResponse;
 import com.nivora.nivora_finance_backend.auth.entity.User;
 import com.nivora.nivora_finance_backend.common.exception.UserAlreadyExistsException;
+import com.nivora.nivora_finance_backend.notification.service.EmailService;
 import com.nivora.nivora_finance_backend.auth.repository.UserRepository;
 import com.nivora.nivora_finance_backend.auth.service.impl.AuthServiceImpl;
 import com.nivora.nivora_finance_backend.security.JwtService;
@@ -58,6 +59,9 @@ class AuthServiceImplTest {
 
         @Mock
         private WalletRepository walletRepository;
+
+        @Mock
+        private EmailService emailService;
 
         @Test
         void signup_ShouldCreateUser_WhenEmailDoesNotExist() {

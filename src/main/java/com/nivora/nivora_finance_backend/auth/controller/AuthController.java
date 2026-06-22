@@ -7,6 +7,8 @@ import com.nivora.nivora_finance_backend.auth.dto.response.AuthResponse;
 import com.nivora.nivora_finance_backend.auth.dto.response.UserProfileResponse;
 import com.nivora.nivora_finance_backend.auth.dto.response.UserSearchResponse;
 import com.nivora.nivora_finance_backend.auth.service.AuthService;
+import com.nivora.nivora_finance_backend.notification.service.EmailService;
+
 import lombok.AllArgsConstructor;
 
 import java.util.List;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final EmailService emailService;
 
     // signup
     @PostMapping("/signup")
@@ -66,7 +69,6 @@ public class AuthController {
                 "Logout successful");
     }
 
-
     @GetMapping("/me")
     public ResponseEntity<UserProfileResponse> getCurrentUser() {
 
@@ -76,12 +78,12 @@ public class AuthController {
     }
 
     @GetMapping("/users/search")
-public ResponseEntity<List<UserSearchResponse>> searchUsers(
-        @RequestParam String keyword) {
+    public ResponseEntity<List<UserSearchResponse>> searchUsers(
+            @RequestParam String keyword) {
 
-    List<UserSearchResponse> users =
-            authService.searchUsers(keyword);
+        List<UserSearchResponse> users = authService.searchUsers(keyword);
 
-    return ResponseEntity.ok(users);
-}
+        return ResponseEntity.ok(users);
+    }
+
 }
