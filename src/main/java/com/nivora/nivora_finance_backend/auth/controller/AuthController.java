@@ -5,8 +5,12 @@ import com.nivora.nivora_finance_backend.auth.dto.request.OtpVerifyRequest;
 import com.nivora.nivora_finance_backend.auth.dto.request.SignupRequest;
 import com.nivora.nivora_finance_backend.auth.dto.response.AuthResponse;
 import com.nivora.nivora_finance_backend.auth.dto.response.UserProfileResponse;
+import com.nivora.nivora_finance_backend.auth.dto.response.UserSearchResponse;
 import com.nivora.nivora_finance_backend.auth.service.AuthService;
 import lombok.AllArgsConstructor;
+
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 
 import org.springframework.web.bind.annotation.*;
@@ -70,4 +74,14 @@ public class AuthController {
 
         return ResponseEntity.ok(res);
     }
+
+    @GetMapping("/users/search")
+public ResponseEntity<List<UserSearchResponse>> searchUsers(
+        @RequestParam String keyword) {
+
+    List<UserSearchResponse> users =
+            authService.searchUsers(keyword);
+
+    return ResponseEntity.ok(users);
+}
 }

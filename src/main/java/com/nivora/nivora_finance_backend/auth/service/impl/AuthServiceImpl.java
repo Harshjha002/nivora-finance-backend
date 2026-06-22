@@ -5,6 +5,7 @@ import com.nivora.nivora_finance_backend.auth.dto.request.OtpVerifyRequest;
 import com.nivora.nivora_finance_backend.auth.dto.request.SignupRequest;
 import com.nivora.nivora_finance_backend.auth.dto.response.AuthResponse;
 import com.nivora.nivora_finance_backend.auth.dto.response.UserProfileResponse;
+import com.nivora.nivora_finance_backend.auth.dto.response.UserSearchResponse;
 import com.nivora.nivora_finance_backend.auth.entity.User;
 import com.nivora.nivora_finance_backend.auth.repository.UserRepository;
 import com.nivora.nivora_finance_backend.auth.service.AuthService;
@@ -23,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.springframework.data.redis.core.RedisTemplate;
@@ -211,8 +213,33 @@ public class AuthServiceImpl implements AuthService {
                                 .build();
         }
 
+        @Override
+        public List<UserSearchResponse> searchUsers(
+                        String keyword) {
+
+                Authentication authentication = SecurityContextHolder
+                                .getContext()
+                                .getAuthentication();
+
+                User currentUser = (User) authentication.getPrincipal();
+
+                return repo
+                                .findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(
+                                                keyword,
+                                                keyword)
+                                .stream()
+                                .filter(user -> !user.getId().equals(currentUser.getId()))
+                                .map(user -> UserSearchResponse.builder()
+                                                .id(user.getId())
+                                                .name(user.getName())
+                                                .email(user.getEmail())
+                                                .build())
+                                .toList();
+        }
+
         private String generateOtp() {
                 return String.valueOf(
                                 ThreadLocalRandom.current().nextInt(100000, 1000000));
         }
+
 }
