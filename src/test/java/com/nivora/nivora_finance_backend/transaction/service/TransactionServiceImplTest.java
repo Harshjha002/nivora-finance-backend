@@ -119,10 +119,10 @@ class TransactionServiceImplTest {
                 when(userRepository.findById(2L))
                                 .thenReturn(Optional.of(receiver));
 
-                when(walletRepository.findByUserId(1L))
+                when(walletRepository.findByUserIdWithLock(1L))
                                 .thenReturn(Optional.of(senderWallet));
 
-                when(walletRepository.findByUserId(2L))
+                when(walletRepository.findByUserIdWithLock(2L))
                                 .thenReturn(Optional.of(receiverWallet));
 
                 when(transactionRepository.save(any(Transaction.class)))
@@ -161,10 +161,10 @@ class TransactionServiceImplTest {
                 when(userRepository.findById(2L))
                                 .thenReturn(Optional.of(receiver));
 
-                when(walletRepository.findByUserId(1L))
+                when(walletRepository.findByUserIdWithLock(1L))
                                 .thenReturn(Optional.of(senderWallet));
 
-                when(walletRepository.findByUserId(2L))
+                when(walletRepository.findByUserIdWithLock(2L))
                                 .thenReturn(Optional.of(receiverWallet));
 
                 assertThrows(

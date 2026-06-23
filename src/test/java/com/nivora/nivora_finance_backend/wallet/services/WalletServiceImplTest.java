@@ -54,7 +54,7 @@ void getBalance_ShouldReturnBalance() {
     SecurityContextHolder.getContext()
             .setAuthentication(authentication);
 
-    when(walletRepository.findByUserId(1L))
+    when(walletRepository.findByUserIdWithLock(1L))
             .thenReturn(Optional.of(wallet));
 
     BalanceResponse response =
@@ -91,7 +91,7 @@ void addMoney_ShouldIncreaseBalance() {
     SecurityContextHolder.getContext()
             .setAuthentication(authentication);
 
-    when(walletRepository.findByUserId(1L))
+    when(walletRepository.findByUserIdWithLock(1L))
             .thenReturn(Optional.of(wallet));
 
     WalletResponse response =
@@ -131,7 +131,7 @@ void addMoney_ShouldThrow_WhenAmountLessThan1() {
     SecurityContextHolder.getContext()
             .setAuthentication(authentication);
 
-    when(walletRepository.findByUserId(1L))
+    when(walletRepository.findByUserIdWithLock(1L))
             .thenReturn(Optional.of(wallet));
 
     assertThrows(
@@ -165,7 +165,7 @@ void addMoney_ShouldThrow_WhenAmountGreaterThan100() {
     SecurityContextHolder.getContext()
             .setAuthentication(authentication);
 
-    when(walletRepository.findByUserId(1L))
+    when(walletRepository.findByUserIdWithLock(1L))
             .thenReturn(Optional.of(wallet));
 
     assertThrows(
@@ -199,7 +199,7 @@ void withdrawMoney_ShouldDecreaseBalance() {
     SecurityContextHolder.getContext()
             .setAuthentication(authentication);
 
-    when(walletRepository.findByUserId(1L))
+    when(walletRepository.findByUserIdWithLock(1L))
             .thenReturn(Optional.of(wallet));
 
     WalletResponse response =
@@ -239,7 +239,7 @@ void withdrawMoney_ShouldThrow_WhenInsufficientFunds() {
     SecurityContextHolder.getContext()
             .setAuthentication(authentication);
 
-    when(walletRepository.findByUserId(1L))
+    when(walletRepository.findByUserIdWithLock(1L))
             .thenReturn(Optional.of(wallet));
 
     assertThrows(

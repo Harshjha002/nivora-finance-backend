@@ -29,8 +29,10 @@ import com.nivora.nivora_finance_backend.wallet.repository.WalletRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 @AllArgsConstructor
 public class TransactionServiceImpl implements TransactionService {
 
@@ -76,10 +78,12 @@ public class TransactionServiceImpl implements TransactionService {
                         throw new IllegalArgumentException("Cannot transfer money to yourself");
                 }
 
-                Wallet senderWallet = walletRepository.findByUserId(sender.getId())
+                Wallet senderWallet = walletRepository
+                                .findByUserIdWithLock(sender.getId())
                                 .orElseThrow(() -> new ResourceNotFoundException("Sender wallet not found"));
 
-                Wallet receiverWallet = walletRepository.findByUserId(receiver.getId())
+                Wallet receiverWallet = walletRepository
+                                .findByUserIdWithLock(receiver.getId())
                                 .orElseThrow(() -> new ResourceNotFoundException("Receiver wallet not found"));
 
                 if (senderWallet.getBalance().compareTo(req.getAmount()) < 0) {
@@ -213,8 +217,8 @@ public class TransactionServiceImpl implements TransactionService {
         @Override
         public TransactionSummaryResponse getSummary() {
 
-                System.out.println("SUMMARY METHOD CALLED");
                 User user = getCurrentUser();
+                log.info("Summary requested by user: {}", user.getId());
 
                 List<Transaction> transactions = transactionRepository.findBySenderIdOrReceiverId(
                                 user.getId(),
@@ -237,38 +241,42 @@ public class TransactionServiceImpl implements TransactionService {
                                 .build();
         }
 
-        @Override
-        public List<RecentContactResponse> getRecentContacts() {
+       @Override
+public List<RecentContactResponse> getRecentContacts() {
 
-                User currentUser = getCurrentUser();
+    User currentUser = getCurrentUser();
 
-                List<Transaction> transactions = transactionRepository.findBySenderIdOrReceiverId(
-                                currentUser.getId(),
-                                currentUser.getId());
+    List<Transaction> transactions =
+            transactionRepository.findBySenderIdOrReceiverId(
+                    currentUser.getId(),
+                    currentUser.getId());
 
-                Set<Long> contactIds = new LinkedHashSet<>();
+    Set<Long> contactIds = new LinkedHashSet<>();
 
-                for (Transaction transaction : transactions) {
+    for (Transaction transaction : transactions) {
 
-                        Long contactId;
+        Long contactId;
 
-                        if (transaction.getSenderId().equals(currentUser.getId())) {
-                                contactId = transaction.getReceiverId();
-                        } else {
-                                contactId = transaction.getSenderId();
-                        }
-
-                        contactIds.add(contactId);
-                }
-
-                return contactIds.stream()
-                                .map(userId -> userRepository.findById(userId)
-                                                .orElseThrow(() -> new ResourceNotFoundException("User not found")))
-                                .map(user -> RecentContactResponse.builder()
-                                                .userId(user.getId())
-                                                .name(user.getName())
-                                                .email(user.getEmail())
-                                                .build())
-                                .toList();
+        if (transaction.getSenderId().equals(currentUser.getId())) {
+            contactId = transaction.getReceiverId();
+        } else {
+            contactId = transaction.getSenderId();
         }
+
+        contactIds.add(contactId);
+    }
+
+    List<Long> contactIdList = List.copyOf(contactIds);
+
+    List<User> contacts =
+            userRepository.findAllById(contactIdList);
+
+    return contacts.stream()
+            .map(user -> RecentContactResponse.builder()
+                    .userId(user.getId())
+                    .name(user.getName())
+                    .email(user.getEmail())
+                    .build())
+            .toList();
+}
 }

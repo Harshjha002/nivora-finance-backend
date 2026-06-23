@@ -28,7 +28,7 @@ public class WalletServiceImpl implements WalletService {
     @Override
     public BalanceResponse getBalance() {
         User user = getCurrentUser();
-        Wallet wallet = walletRepository.findByUserId(user.getId())
+        Wallet wallet = walletRepository.findByUserIdWithLock(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Wallet not found"));
 
         return BalanceResponse.builder()
@@ -39,7 +39,7 @@ public class WalletServiceImpl implements WalletService {
     public WalletResponse addMoney(AddMoneyRequest req) {
 
         User user = getCurrentUser();
-        Wallet wallet = walletRepository.findByUserId(user.getId())
+        Wallet wallet = walletRepository.findByUserIdWithLock(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Wallet not found"));
 
@@ -69,7 +69,7 @@ public class WalletServiceImpl implements WalletService {
     @Override
     public WalletResponse withdrawMoney(WithdrawRequest req) {
         User user = getCurrentUser();
-        Wallet wallet = walletRepository.findByUserId(user.getId())
+        Wallet wallet = walletRepository.findByUserIdWithLock(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Wallet not found"));
 
