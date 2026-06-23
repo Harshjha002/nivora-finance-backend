@@ -1,78 +1,87 @@
 package com.nivora.nivora_finance_backend.security;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.beans.factory.annotation.Value;
-import java.util.List;
-
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-        @Value("${cors.allowed-origin}")
-        private String allowedOrigin;
+    @Value("${cors.allowed-origin}")
+    private String allowedOrigin;
 
-        private final JwtFilter jwtFilter;
+    private final JwtFilter jwtFilter;
 
-        @Bean
-        public SecurityFilterChain securityFilterChain(
-                        HttpSecurity http) throws Exception {
+    @Bean
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http) throws Exception {
 
-                return http
-                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                                .csrf(csrf -> csrf.disable())
+        return http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
 
-                                .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers(
-                                                                "/docs",
-                                                                "/docs.html",
-                                                                "/swagger/**",
-                                                                "/swagger-ui/**",
-                                                                "/v3/api-docs/**")
-                                                .permitAll()
+                .authorizeHttpRequests(auth -> auth
 
-                                                .anyRequest().authenticated())
+                        .requestMatchers(
+                                "/docs",
+                                "/docs.html",
+                                "/swagger/**",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
 
-                                .addFilterBefore(
-                                                jwtFilter,
-                                                UsernamePasswordAuthenticationFilter.class)
+                                "/api/v1/auth/signup",
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/verify-otp",
 
-                                .build();
-        }
+                                "/error",
+                                "/favicon.ico")
+                        .permitAll()
 
-        @Bean
-        public CorsConfigurationSource corsConfigurationSource() {
+                        .anyRequest().authenticated())
 
-                CorsConfiguration configuration = new CorsConfiguration();
+                .addFilterBefore(
+                        jwtFilter,
+                        UsernamePasswordAuthenticationFilter.class)
 
-                configuration.setAllowedOrigins(
-                                List.of(allowedOrigin));
+                .build();
+    }
 
-                configuration.setAllowedMethods(
-                                List.of(
-                                                "GET",
-                                                "POST",
-                                                "PUT",
-                                                "DELETE",
-                                                "OPTIONS"));
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
 
-                configuration.setAllowedHeaders(
-                                List.of("*"));
+        CorsConfiguration configuration = new CorsConfiguration();
 
-                configuration.setAllowCredentials(true);
+        configuration.setAllowedOrigins(
+                List.of(allowedOrigin));
 
-                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        configuration.setAllowedMethods(
+                List.of(
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "DELETE",
+                        "OPTIONS"));
 
-                source.registerCorsConfiguration("/**", configuration);
+        configuration.setAllowedHeaders(
+                List.of("*"));
 
-                return source;
-        }
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration("/**", configuration);
+
+        return source;
+    }
 }

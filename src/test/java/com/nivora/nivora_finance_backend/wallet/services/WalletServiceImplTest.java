@@ -54,8 +54,8 @@ void getBalance_ShouldReturnBalance() {
     SecurityContextHolder.getContext()
             .setAuthentication(authentication);
 
-    when(walletRepository.findByUserIdWithLock(1L))
-            .thenReturn(Optional.of(wallet));
+   when(walletRepository.findByUserId(1L))
+        .thenReturn(Optional.of(wallet));
 
     BalanceResponse response =
             walletService.getBalance();

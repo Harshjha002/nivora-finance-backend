@@ -17,6 +17,7 @@ import com.nivora.nivora_finance_backend.wallet.entity.Wallet;
 import com.nivora.nivora_finance_backend.wallet.repository.WalletRepository;
 import com.nivora.nivora_finance_backend.wallet.service.WalletService;
 
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 
 @Service
@@ -25,17 +26,20 @@ public class WalletServiceImpl implements WalletService {
 
     private final WalletRepository walletRepository;
 
-    @Override
-    public BalanceResponse getBalance() {
-        User user = getCurrentUser();
-        Wallet wallet = walletRepository.findByUserIdWithLock(user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Wallet not found"));
+   @Override
+public BalanceResponse getBalance() {
+    User user = getCurrentUser();
 
-        return BalanceResponse.builder()
-                .balance(wallet.getBalance()).build();
-    }
+    Wallet wallet = walletRepository.findByUserId(user.getId())
+            .orElseThrow(() -> new ResourceNotFoundException("Wallet not found"));
+
+    return BalanceResponse.builder()
+            .balance(wallet.getBalance())
+            .build();
+}
 
     @Override
+    @Transactional
     public WalletResponse addMoney(AddMoneyRequest req) {
 
         User user = getCurrentUser();
@@ -67,6 +71,7 @@ public class WalletServiceImpl implements WalletService {
     }
 
     @Override
+    @Transactional
     public WalletResponse withdrawMoney(WithdrawRequest req) {
         User user = getCurrentUser();
         Wallet wallet = walletRepository.findByUserIdWithLock(user.getId())
