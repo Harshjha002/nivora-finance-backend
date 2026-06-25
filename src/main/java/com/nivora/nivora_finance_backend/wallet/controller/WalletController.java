@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 
 import org.springframework.web.bind.annotation.*;
@@ -60,7 +60,7 @@ public class WalletController {
     })
     @PostMapping("/add-money")
     public WalletResponse addMoney(
-            @RequestBody AddMoneyRequest req) {
+        @Valid @RequestBody AddMoneyRequest req) {
 
         return walletService.addMoney(req);
     }
@@ -86,7 +86,7 @@ public class WalletController {
     })
     @PostMapping("/withdraw")
     public WalletResponse withdrawMoney(
-            @RequestBody WithdrawRequest req) {
+        @Valid @RequestBody WithdrawRequest req) {
 
         return walletService.withdrawMoney(req);
     }

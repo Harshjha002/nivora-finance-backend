@@ -2,6 +2,8 @@ package com.nivora.nivora_finance_backend.transaction.repository;
 
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -20,4 +22,9 @@ public interface TransactionRepository
     List<Transaction> findBySenderIdOrReceiverId(
         Long senderId,
         Long receiverId);
+
+    Page<Transaction> findBySenderIdOrReceiverId(
+        Long senderId,
+        Long receiverId,
+        Pageable pageable);
 }

@@ -12,6 +12,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.dao.DataIntegrityViolationException;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -107,7 +111,6 @@ public class GlobalExceptionHandler {
                                                                 .build());
         }
 
-
         @ExceptionHandler(DataIntegrityViolationException.class)
         public ResponseEntity<ApiResponse<Object>> handleDataIntegrityViolation(
                         DataIntegrityViolationException ex) {
@@ -118,6 +121,27 @@ public class GlobalExceptionHandler {
                                                                 .success(false)
                                                                 .message("Duplicate transaction request")
                                                                 .data(null)
+                                                                .build());
+        }
+
+        @ExceptionHandler(MethodArgumentNotValidException.class)
+        public ResponseEntity<ApiResponse<Object>> handleValidationException(
+                        MethodArgumentNotValidException ex) {
+
+                Map<String, String> errors = new HashMap<>();
+
+                ex.getBindingResult()
+                                .getFieldErrors()
+                                .forEach(error -> errors.put(
+                                                error.getField(),
+                                                error.getDefaultMessage()));
+
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body(
+                                                ApiResponse.builder()
+                                                                .success(false)
+                                                                .message("Validation failed")
+                                                                .data(errors)
                                                                 .build());
         }
 
@@ -133,7 +157,5 @@ public class GlobalExceptionHandler {
                                                                 .data(null)
                                                                 .build());
         }
-
-        
 
 }

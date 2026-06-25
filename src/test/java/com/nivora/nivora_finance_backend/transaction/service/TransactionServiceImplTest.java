@@ -3,6 +3,7 @@ package com.nivora.nivora_finance_backend.transaction.service;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import com.nivora.nivora_finance_backend.transaction.mapper.TransactionMapper;
 
@@ -19,7 +20,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import com.nivora.nivora_finance_backend.auth.entity.User;
 import com.nivora.nivora_finance_backend.auth.repository.UserRepository;
 import com.nivora.nivora_finance_backend.common.exception.InsufficientFundsException;
@@ -186,16 +189,30 @@ class TransactionServiceImplTest {
                                 .type(TransactionType.TRANSFER)
                                 .build();
 
-                when(transactionRepository.findBySenderIdOrReceiverId(1L, 1L))
-                                .thenReturn(List.of(transaction));
+                Page<Transaction> page = new PageImpl<>(
+                                List.of(transaction),
+                                PageRequest.of(0, 20),
+                                1);
 
-                List<TransactionResponse> responses = transactionService.getMyTransactions();
+                when(transactionRepository.findBySenderIdOrReceiverId(
+                                eq(1L),
+                                eq(1L),
+                                any()))
+                                .thenReturn(page);
 
-                assertEquals(1, responses.size());
+                Page<TransactionResponse> responses = transactionService.getMyTransactions(
+                                0,
+                                20);
+
+                assertEquals(
+                                1,
+                                responses.getContent().size());
 
                 assertEquals(
                                 TransactionDirection.DEBIT,
-                                responses.get(0).getDirection());
+                                responses.getContent()
+                                                .get(0)
+                                                .getDirection());
         }
 
         @Test
@@ -326,16 +343,30 @@ class TransactionServiceImplTest {
                                 .type(TransactionType.TRANSFER)
                                 .build();
 
-                when(transactionRepository.findBySenderIdOrReceiverId(1L, 1L))
-                                .thenReturn(List.of(transaction));
+                Page<Transaction> page = new PageImpl<>(
+                                List.of(transaction),
+                                PageRequest.of(0, 20),
+                                1);
 
-                List<TransactionResponse> responses = transactionService.getMyTransactions();
+                when(transactionRepository.findBySenderIdOrReceiverId(
+                                eq(1L),
+                                eq(1L),
+                                any()))
+                                .thenReturn(page);
 
-                assertEquals(1, responses.size());
+                Page<TransactionResponse> responses = transactionService.getMyTransactions(
+                                0,
+                                20);
+
+                assertEquals(
+                                1,
+                                responses.getContent().size());
 
                 assertEquals(
                                 TransactionDirection.CREDIT,
-                                responses.get(0).getDirection());
+                                responses.getContent()
+                                                .get(0)
+                                                .getDirection());
         }
 
         @AfterEach

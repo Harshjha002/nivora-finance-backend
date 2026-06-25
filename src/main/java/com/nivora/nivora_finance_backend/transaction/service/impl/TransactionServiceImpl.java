@@ -9,6 +9,11 @@ import java.util.Set;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 
 import com.nivora.nivora_finance_backend.auth.entity.User;
 import com.nivora.nivora_finance_backend.auth.repository.UserRepository;
@@ -133,22 +138,37 @@ public class TransactionServiceImpl implements TransactionService {
                                 .build();
         }
 
-        @Override
-        public List<TransactionResponse> getMyTransactions() {
+       @Override
+public Page<TransactionResponse> getMyTransactions(
+        int page,
+        int size) {
 
-                User user = getCurrentUser();
+    User user = getCurrentUser();
 
-                List<Transaction> transactions = transactionRepository.findBySenderIdOrReceiverId(
-                                user.getId(),
-                                user.getId());
+    Pageable pageable =
+            PageRequest.of(page, size);
 
-                return transactions.stream()
-                                .map(transaction -> transactionMapper.toResponse(
-                                                transaction,
-                                                user.getId()))
-                                .toList();
-        }
+    Page<Transaction> transactions =
+            transactionRepository
+                    .findBySenderIdOrReceiverId(
+                            user.getId(),
+                            user.getId(),
+                            pageable);
 
+    List<TransactionResponse> responses =
+            transactions.getContent()
+                    .stream()
+                    .map(transaction ->
+                            transactionMapper.toResponse(
+                                    transaction,
+                                    user.getId()))
+                    .toList();
+
+    return new PageImpl<>(
+            responses,
+            pageable,
+            transactions.getTotalElements());
+}
         @Override
         public TransactionResponse getTransactionById(Long transactionId) {
 
