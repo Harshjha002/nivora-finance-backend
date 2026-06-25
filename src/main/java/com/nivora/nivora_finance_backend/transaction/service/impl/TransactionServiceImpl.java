@@ -14,7 +14,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
-
 import com.nivora.nivora_finance_backend.auth.entity.User;
 import com.nivora.nivora_finance_backend.auth.repository.UserRepository;
 import com.nivora.nivora_finance_backend.common.exception.InsufficientFundsException;
@@ -138,37 +137,34 @@ public class TransactionServiceImpl implements TransactionService {
                                 .build();
         }
 
-       @Override
-public Page<TransactionResponse> getMyTransactions(
-        int page,
-        int size) {
+        @Override
+        public Page<TransactionResponse> getMyTransactions(
+                        int page,
+                        int size) {
 
-    User user = getCurrentUser();
+                User user = getCurrentUser();
 
-    Pageable pageable =
-            PageRequest.of(page, size);
+                Pageable pageable = PageRequest.of(page, size);
 
-    Page<Transaction> transactions =
-            transactionRepository
-                    .findBySenderIdOrReceiverId(
-                            user.getId(),
-                            user.getId(),
-                            pageable);
+                Page<Transaction> transactions = transactionRepository
+                                .findBySenderIdOrReceiverId(
+                                                user.getId(),
+                                                user.getId(),
+                                                pageable);
 
-    List<TransactionResponse> responses =
-            transactions.getContent()
-                    .stream()
-                    .map(transaction ->
-                            transactionMapper.toResponse(
-                                    transaction,
-                                    user.getId()))
-                    .toList();
+                List<TransactionResponse> responses = transactions.getContent()
+                                .stream()
+                                .map(transaction -> transactionMapper.toResponse(
+                                                transaction,
+                                                user.getId()))
+                                .toList();
 
-    return new PageImpl<>(
-            responses,
-            pageable,
-            transactions.getTotalElements());
-}
+                return new PageImpl<>(
+                                responses,
+                                pageable,
+                                transactions.getTotalElements());
+        }
+
         @Override
         public TransactionResponse getTransactionById(Long transactionId) {
 
@@ -198,36 +194,11 @@ public Page<TransactionResponse> getMyTransactions(
 
                 User user = getCurrentUser();
 
-                List<Transaction> transactions = transactionRepository.findBySenderIdOrReceiverId(
-                                user.getId(),
-                                user.getId());
-
-                return transactions.stream()
-                                .filter(transaction ->
-
-                                String.valueOf(transaction.getId())
-                                                .contains(keyword)
-
-                                                ||
-
-                                                transaction.getAmount()
-                                                                .toString()
-                                                                .contains(keyword)
-
-                                                ||
-
-                                                transaction.getStatus()
-                                                                .name()
-                                                                .toLowerCase()
-                                                                .contains(keyword.toLowerCase())
-
-                                                ||
-
-                                                transaction.getType()
-                                                                .name()
-                                                                .toLowerCase()
-                                                                .contains(keyword.toLowerCase()))
-
+                return transactionRepository
+                                .searchTransactions(
+                                                user.getId(),
+                                                keyword)
+                                .stream()
                                 .map(transaction -> transactionMapper.toResponse(
                                                 transaction,
                                                 user.getId()))
@@ -261,42 +232,40 @@ public Page<TransactionResponse> getMyTransactions(
                                 .build();
         }
 
-       @Override
-public List<RecentContactResponse> getRecentContacts() {
+        @Override
+        public List<RecentContactResponse> getRecentContacts() {
 
-    User currentUser = getCurrentUser();
+                User currentUser = getCurrentUser();
 
-    List<Transaction> transactions =
-            transactionRepository.findBySenderIdOrReceiverId(
-                    currentUser.getId(),
-                    currentUser.getId());
+                List<Transaction> transactions = transactionRepository.findBySenderIdOrReceiverId(
+                                currentUser.getId(),
+                                currentUser.getId());
 
-    Set<Long> contactIds = new LinkedHashSet<>();
+                Set<Long> contactIds = new LinkedHashSet<>();
 
-    for (Transaction transaction : transactions) {
+                for (Transaction transaction : transactions) {
 
-        Long contactId;
+                        Long contactId;
 
-        if (transaction.getSenderId().equals(currentUser.getId())) {
-            contactId = transaction.getReceiverId();
-        } else {
-            contactId = transaction.getSenderId();
+                        if (transaction.getSenderId().equals(currentUser.getId())) {
+                                contactId = transaction.getReceiverId();
+                        } else {
+                                contactId = transaction.getSenderId();
+                        }
+
+                        contactIds.add(contactId);
+                }
+
+                List<Long> contactIdList = List.copyOf(contactIds);
+
+                List<User> contacts = userRepository.findAllById(contactIdList);
+
+                return contacts.stream()
+                                .map(user -> RecentContactResponse.builder()
+                                                .userId(user.getId())
+                                                .name(user.getName())
+                                                .email(user.getEmail())
+                                                .build())
+                                .toList();
         }
-
-        contactIds.add(contactId);
-    }
-
-    List<Long> contactIdList = List.copyOf(contactIds);
-
-    List<User> contacts =
-            userRepository.findAllById(contactIdList);
-
-    return contacts.stream()
-            .map(user -> RecentContactResponse.builder()
-                    .userId(user.getId())
-                    .name(user.getName())
-                    .email(user.getEmail())
-                    .build())
-            .toList();
-}
 }

@@ -369,6 +369,40 @@ class TransactionServiceImplTest {
                                                 .getDirection());
         }
 
+        @Test
+        void searchTransactions_ShouldReturnMatchingTransactions() {
+
+                Transaction transaction = Transaction.builder()
+                                .id(1L)
+                                .senderId(1L)
+                                .receiverId(2L)
+                                .amount(BigDecimal.TEN)
+                                .status(TransactionStatus.SUCCESS)
+                                .type(TransactionType.TRANSFER)
+                                .build();
+
+                when(transactionRepository.searchTransactions(
+                                1L,
+                                "success"))
+                                .thenReturn(List.of(transaction));
+
+                List<TransactionResponse> responses = transactionService.searchTransactions(
+                                "success");
+
+                assertEquals(
+                                1,
+                                responses.size());
+
+                assertEquals(
+                                TransactionDirection.DEBIT,
+                                responses.get(0).getDirection());
+
+                verify(transactionRepository)
+                                .searchTransactions(
+                                                1L,
+                                                "success");
+        }
+
         @AfterEach
         void tearDown() {
                 SecurityContextHolder.clearContext();
