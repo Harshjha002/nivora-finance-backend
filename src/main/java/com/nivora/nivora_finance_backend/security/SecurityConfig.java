@@ -11,77 +11,79 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.nivora.nivora_finance_backend.rate_limit.filter.RateLimitFilter;
+
 import java.util.List;
 
 @Configuration
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    @Value("${cors.allowed-origin}")
-    private String allowedOrigin;
+        @Value("${cors.allowed-origin}")
+        private String allowedOrigin;
 
-    private final JwtFilter jwtFilter;
+        private final JwtFilter jwtFilter;
+        private final RateLimitFilter rateLimitFilter;
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(
-            HttpSecurity http) throws Exception {
+        @Bean
+        public SecurityFilterChain securityFilterChain(
+                        HttpSecurity http) throws Exception {
 
-        return http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
+                return http
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                                .csrf(csrf -> csrf.disable())
 
-                .authorizeHttpRequests(auth -> auth
+                                .authorizeHttpRequests(auth -> auth
 
-                        .requestMatchers(
-                                "/docs",
-                                "/docs.html",
-                                "/swagger/**",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
+                                                .requestMatchers(
+                                                                "/docs",
+                                                                "/docs.html",
+                                                                "/swagger/**",
+                                                                "/swagger-ui/**",
+                                                                "/v3/api-docs/**",
 
-                                "/api/v1/auth/signup",
-                                "/api/v1/auth/login",
-                                "/api/v1/auth/verify-otp",
+                                                                "/api/v1/auth/signup",
+                                                                "/api/v1/auth/login",
+                                                                "/api/v1/auth/verify-otp",
 
-                                "/error",
-                                "/favicon.ico")
-                        .permitAll()
+                                                                "/error",
+                                                                "/favicon.ico")
+                                                .permitAll()
 
-                        .anyRequest().authenticated())
+                                                .anyRequest().authenticated())
 
-                .addFilterBefore(
-                        jwtFilter,
-                        UsernamePasswordAuthenticationFilter.class)
+                                .addFilterBefore(
+                                                jwtFilter,
+                                                UsernamePasswordAuthenticationFilter.class)
+                                .addFilterAfter(rateLimitFilter, JwtFilter.class)
+                                .build();
+        }
 
-                .build();
-    }
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration configuration = new CorsConfiguration();
 
-        CorsConfiguration configuration = new CorsConfiguration();
+                configuration.setAllowedOrigins(
+                                List.of(allowedOrigin));
 
-        configuration.setAllowedOrigins(
-                List.of(allowedOrigin));
+                configuration.setAllowedMethods(
+                                List.of(
+                                                "GET",
+                                                "POST",
+                                                "PUT",
+                                                "DELETE",
+                                                "OPTIONS"));
 
-        configuration.setAllowedMethods(
-                List.of(
-                        "GET",
-                        "POST",
-                        "PUT",
-                        "DELETE",
-                        "OPTIONS"));
+                configuration.setAllowedHeaders(
+                                List.of("*"));
 
-        configuration.setAllowedHeaders(
-                List.of("*"));
+                configuration.setAllowCredentials(true);
 
-        configuration.setAllowCredentials(true);
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
 
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", configuration);
 
-        source.registerCorsConfiguration("/**", configuration);
-
-        return source;
-    }
+                return source;
+        }
 }

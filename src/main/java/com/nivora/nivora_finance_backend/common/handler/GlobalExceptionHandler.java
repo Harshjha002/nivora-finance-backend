@@ -3,6 +3,7 @@ package com.nivora.nivora_finance_backend.common.handler;
 import com.nivora.nivora_finance_backend.common.exception.InsufficientFundsException;
 import com.nivora.nivora_finance_backend.common.exception.InvalidCredentialsException;
 import com.nivora.nivora_finance_backend.common.exception.InvalidOtpException;
+import com.nivora.nivora_finance_backend.common.exception.RateLimitExceededException;
 import com.nivora.nivora_finance_backend.common.exception.ResourceNotFoundException;
 import com.nivora.nivora_finance_backend.common.exception.UnauthorizedException;
 import com.nivora.nivora_finance_backend.common.exception.UserAlreadyExistsException;
@@ -142,6 +143,19 @@ public class GlobalExceptionHandler {
                                                                 .success(false)
                                                                 .message("Validation failed")
                                                                 .data(errors)
+                                                                .build());
+        }
+
+        @ExceptionHandler(RateLimitExceededException.class)
+        public ResponseEntity<ApiResponse<Object>> handleRateLimitExceeded(
+                        RateLimitExceededException ex) {
+
+                return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                                .body(
+                                                ApiResponse.builder()
+                                                                .success(false)
+                                                                .message(ex.getMessage())
+                                                                .data(null)
                                                                 .build());
         }
 
