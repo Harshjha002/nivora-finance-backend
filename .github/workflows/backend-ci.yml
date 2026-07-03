@@ -113,3 +113,8 @@ jobs:
           name: nivora-backend-image
           path: nivora-backend.tar
           retention-days: 7
+
+      - name: Push Docker Images
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
