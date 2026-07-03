@@ -1,4 +1,4 @@
-name: Backend CI
+name: Nivora Backend CI
 
 on:
   push:
@@ -9,6 +9,9 @@ on:
     branches:
       - main
 
+  workflow_dispatch:
+
+    
 jobs:
   test:
     name: Run Tests
@@ -36,7 +39,7 @@ jobs:
 
 
   build:
-    name: Build Application
+    name: Build BootJar
     needs: test
     runs-on: ubuntu-latest
 
