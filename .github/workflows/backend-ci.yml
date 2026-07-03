@@ -11,7 +11,6 @@ on:
 
   workflow_dispatch:
 
-
 jobs:
   test:
     name: Run Tests
@@ -36,7 +35,6 @@ jobs:
 
       - name: Run Unit Tests
         run: ./gradlew clean test --no-daemon
-
 
   build:
     name: Build BootJar
@@ -77,4 +75,19 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker build -t nivora-backend:latest .
+          docker build \
+            -t nivora-backend:latest \
+            -t nivora-backend:${{ github.sha }} .
+
+      - name: Export Docker Image
+        run: |
+          docker save \
+            -o nivora-backend.tar \
+            nivora-backend:latest
+
+      - name: Upload Docker Image Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nivora-backend-image
+          path: nivora-backend.tar
+          retention-days: 7
