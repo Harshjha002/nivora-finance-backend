@@ -11,7 +11,7 @@ on:
 
   workflow_dispatch:
 
-    
+
 jobs:
   test:
     name: Run Tests
@@ -62,3 +62,19 @@ jobs:
 
       - name: Build BootJar
         run: ./gradlew bootJar --no-daemon
+
+  docker:
+    name: Build Docker Image
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker Image
+        run: |
+          docker build -t nivora-backend:latest .
