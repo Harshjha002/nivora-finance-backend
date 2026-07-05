@@ -10,10 +10,12 @@ import lombok.*;
 
 @Entity
 @Table(name = "transactions")
-@Data
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(of = "id")
 public class Transaction {
 
     @Id
