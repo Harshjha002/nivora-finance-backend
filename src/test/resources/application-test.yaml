@@ -1,0 +1,12 @@
+spring:
+  mail:
+    host: localhost
+    port: 1025
+    username: test
+    password: test
+
+jwt:
+  secret: this-is-a-test-secret-key-with-at-least-32-characters
+
+cors:
+  allowed-origin: http://localhost:3000

@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import com.nivora.nivora_finance_backend.transaction.mapper.TransactionMapper;
+import com.nivora.nivora_finance_backend.transaction.projection.TransactionSummaryProjection;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -29,6 +30,7 @@ import com.nivora.nivora_finance_backend.common.exception.InsufficientFundsExcep
 import com.nivora.nivora_finance_backend.common.exception.ResourceNotFoundException;
 import com.nivora.nivora_finance_backend.transaction.dto.request.TransferRequest;
 import com.nivora.nivora_finance_backend.transaction.dto.response.TransactionResponse;
+import com.nivora.nivora_finance_backend.transaction.dto.response.TransactionSummaryResponse;
 import com.nivora.nivora_finance_backend.transaction.entity.Transaction;
 import com.nivora.nivora_finance_backend.transaction.entity.TransactionDirection;
 import com.nivora.nivora_finance_backend.transaction.entity.TransactionStatus;
@@ -401,6 +403,29 @@ class TransactionServiceImplTest {
                                 .searchTransactions(
                                                 1L,
                                                 "success");
+        }
+
+        @Test
+        void getSummary_ShouldReturnSummary() {
+                // Arrange
+                TransactionSummaryProjection projection = mock(TransactionSummaryProjection.class);
+
+                when(projection.getTotalSent()).thenReturn(new BigDecimal("120.00"));
+                when(projection.getTotalReceived()).thenReturn(new BigDecimal("80.00"));
+                when(projection.getTransactionCount()).thenReturn(5L);
+
+                when(transactionRepository.getTransactionSummary(1L))
+                                .thenReturn(projection);
+
+                // Act
+                TransactionSummaryResponse response = transactionService.getSummary();
+
+                // Assert
+                assertEquals(new BigDecimal("120.00"), response.getTotalSent());
+                assertEquals(new BigDecimal("80.00"), response.getTotalReceived());
+                assertEquals(5L, response.getTransactionCount());
+
+                verify(transactionRepository).getTransactionSummary(1L);
         }
 
         @AfterEach

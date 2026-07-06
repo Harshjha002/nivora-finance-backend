@@ -26,6 +26,7 @@ import com.nivora.nivora_finance_backend.transaction.entity.Transaction;
 import com.nivora.nivora_finance_backend.transaction.entity.TransactionStatus;
 import com.nivora.nivora_finance_backend.transaction.entity.TransactionType;
 import com.nivora.nivora_finance_backend.transaction.mapper.TransactionMapper;
+import com.nivora.nivora_finance_backend.transaction.projection.TransactionSummaryProjection;
 import com.nivora.nivora_finance_backend.transaction.repository.TransactionRepository;
 import com.nivora.nivora_finance_backend.transaction.service.TransactionService;
 import com.nivora.nivora_finance_backend.wallet.entity.Wallet;
@@ -211,24 +212,12 @@ public class TransactionServiceImpl implements TransactionService {
                 User user = getCurrentUser();
                 log.info("Summary requested by user: {}", user.getId());
 
-                List<Transaction> transactions = transactionRepository.findBySenderIdOrReceiverId(
-                                user.getId(),
-                                user.getId());
-
-                BigDecimal totalSent = transactions.stream()
-                                .filter(t -> t.getSenderId().equals(user.getId()))
-                                .map(Transaction::getAmount)
-                                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-                BigDecimal totalReceived = transactions.stream()
-                                .filter(t -> t.getReceiverId().equals(user.getId()))
-                                .map(Transaction::getAmount)
-                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                TransactionSummaryProjection summary = transactionRepository.getTransactionSummary(user.getId());
 
                 return TransactionSummaryResponse.builder()
-                                .totalSent(totalSent)
-                                .totalReceived(totalReceived)
-                                .transactionCount((long) transactions.size())
+                                .totalSent(summary.getTotalSent())
+                                .totalReceived(summary.getTotalReceived())
+                                .transactionCount(summary.getTransactionCount())
                                 .build();
         }
 
