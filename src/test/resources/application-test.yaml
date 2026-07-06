@@ -7,6 +7,7 @@ spring:
 
 jwt:
   secret: this-is-a-test-secret-key-with-at-least-32-characters
+  expiration: 10800000
 
 cors:
   allowed-origin: http://localhost:3000
