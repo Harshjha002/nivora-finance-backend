@@ -12,7 +12,7 @@ import com.nivora.nivora_finance_backend.auth.entity.User;
 import com.nivora.nivora_finance_backend.common.exception.RateLimitExceededException;
 import com.nivora.nivora_finance_backend.common.exception.UnauthorizedException;
 import com.nivora.nivora_finance_backend.common.handler.FilterExceptionHandler;
-import com.nivora.nivora_finance_backend.rate_limit.constants.RateLimitConstants;
+import com.nivora.nivora_finance_backend.rate_limit.config.RateLimitProperties;
 import com.nivora.nivora_finance_backend.rate_limit.service.RateLimitService;
 
 import jakarta.servlet.FilterChain;
@@ -27,6 +27,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private final RateLimitService rateLimitService;
     private final FilterExceptionHandler filterExceptionHandler;
+    private final RateLimitProperties rateLimitConfig;
 
     @Override
     protected void doFilterInternal(
@@ -36,6 +37,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         try {
+
             String path = request.getRequestURI();
 
             // Public APIs (Rate limit by IP)
@@ -45,8 +47,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
                 checkRateLimit(
                         key,
-                        RateLimitConstants.LOGIN_LIMIT,
-                        RateLimitConstants.LOGIN_WINDOW_SECONDS);
+                        rateLimitConfig.getLogin().getLimit(),
+                        rateLimitConfig.getLogin().getWindowSeconds());
 
             } else if (path.equals("/api/v1/auth/signup")) {
 
@@ -54,8 +56,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
                 checkRateLimit(
                         key,
-                        RateLimitConstants.SIGNUP_LIMIT,
-                        RateLimitConstants.SIGNUP_WINDOW_SECONDS);
+                        rateLimitConfig.getSignup().getLimit(),
+                        rateLimitConfig.getSignup().getWindowSeconds());
 
             } else if (path.equals("/api/v1/auth/verify-otp")) {
 
@@ -63,8 +65,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
                 checkRateLimit(
                         key,
-                        RateLimitConstants.VERIFY_OTP_LIMIT,
-                        RateLimitConstants.VERIFY_OTP_WINDOW_SECONDS);
+                        rateLimitConfig.getVerifyOtp().getLimit(),
+                        rateLimitConfig.getVerifyOtp().getWindowSeconds());
 
             }
 
@@ -77,8 +79,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
                 checkRateLimit(
                         key,
-                        RateLimitConstants.TRANSFER_LIMIT,
-                        RateLimitConstants.TRANSFER_WINDOW_SECONDS);
+                        rateLimitConfig.getTransfer().getLimit(),
+                        rateLimitConfig.getTransfer().getWindowSeconds());
 
             } else if (path.equals("/api/v1/qr/pay")) {
 
@@ -88,11 +90,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
                 checkRateLimit(
                         key,
-                        RateLimitConstants.QR_PAYMENT_LIMIT,
-                        RateLimitConstants.QR_PAYMENT_WINDOW_SECONDS);
+                        rateLimitConfig.getQrPayment().getLimit(),
+                        rateLimitConfig.getQrPayment().getWindowSeconds());
             }
 
             filterChain.doFilter(request, response);
+
         } catch (RateLimitExceededException ex) {
 
             filterExceptionHandler.handle(
@@ -100,16 +103,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
                     HttpStatus.TOO_MANY_REQUESTS,
                     ex.getMessage());
 
-            return;
-
         } catch (UnauthorizedException ex) {
 
             filterExceptionHandler.handle(
                     response,
                     HttpStatus.UNAUTHORIZED,
                     ex.getMessage());
-
-            return;
         }
     }
 
