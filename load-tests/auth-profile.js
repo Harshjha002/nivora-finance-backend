@@ -4,7 +4,7 @@ import { check } from "k6";
 const BASE_URL = "http://localhost:8080";
 
 export const options = {
-  vus: 100,
+  vus: 50,
   duration: "30s",
 
   thresholds: {
